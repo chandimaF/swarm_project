@@ -15,7 +15,7 @@
 class SwarmUIApp : public wxApp
 {
     public:
-        virtual bool OnInit();
+        bool OnInit() override;
 };
 
 #endif // SWARMUIAPP_H

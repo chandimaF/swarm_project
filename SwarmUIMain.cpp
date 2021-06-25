@@ -8,6 +8,7 @@
  **************************************************************/
 
 #include "SwarmUIMain.h"
+#include "SwarmUIDeployment.h"
 #include <wx/msgdlg.h>
 
 //(*InternalHeaders(SwarmUIFrame)
@@ -74,9 +75,9 @@ SwarmUIFrame::SwarmUIFrame(wxWindow* parent,wxWindowID id)
     Panel1 = new wxPanel(Notebook1, ID_PANEL1, wxPoint(-13,-4), wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL1"));
     Button1 = new wxButton(Panel1, ID_BUTTON1, _("Click Me"), wxPoint(40,48), wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON1"));
     Button2 = new wxButton(Panel1, ID_BUTTON2, _("Don\'t Click Me"), wxPoint(168,48), wxDefaultSize, 0, wxDefaultValidator, _T("ID_BUTTON2"));
-    Panel2 = new wxPanel(Notebook1, ID_PANEL2, wxPoint(249,13), wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL2"));
+    Panel4 = new wxPanel(Notebook1, ID_PANEL2, wxPoint(249,13), wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL2"));
     Panel3 = new wxPanel(Notebook1, ID_PANEL3, wxPoint(13,173), wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL3"));
-    Panel4 = new wxPanel(Notebook1, ID_PANEL4, wxPoint(34,181), wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL4"));
+    Panel2 = new SwarmUIDeployment(Notebook1, ID_PANEL4, wxPoint(34,181), wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL4"));
     Panel5 = new wxPanel(Notebook1, ID_PANEL5, wxPoint(37,158), wxDefaultSize, wxTAB_TRAVERSAL, _T("ID_PANEL5"));
     Notebook1->AddPage(Panel1, _("Test Tab"), false);
     Notebook1->AddPage(Panel2, _("Deployment"), false);
@@ -127,10 +128,13 @@ void SwarmUIFrame::OnAbout(wxCommandEvent& event)
 
 void SwarmUIFrame::OnButton1Click(wxCommandEvent& event)
 {
-    wxMessageBox("Hello NIMBUS");
+    wxMessageBox(_("Hello NIMBUS"));
 }
 
-
+void SwarmUIFrame::OnNotebook1PageChanged(wxNotebookEvent& event)
+{
+    // Do nothing
+}
 
 void SwarmUIFrame::OnButton2Click(wxCommandEvent& event)
 {

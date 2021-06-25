@@ -18,16 +18,10 @@ IMPLEMENT_APP(SwarmUIApp);
 
 bool SwarmUIApp::OnInit()
 {
-    //(*AppInitialize
-    bool wxsOK = true;
     wxInitAllImageHandlers();
-    if ( wxsOK )
-    {
-    	SwarmUIFrame* Frame = new SwarmUIFrame(0);
-    	Frame->Show();
-    	SetTopWindow(Frame);
-    }
-    //*)
-    return wxsOK;
 
+    auto* Frame = new SwarmUIFrame(nullptr);
+    Frame->Show();
+    SetTopWindow(Frame);
+    return true;
 }
