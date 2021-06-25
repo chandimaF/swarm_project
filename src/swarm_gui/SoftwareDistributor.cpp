@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <iostream>
+#include "ros/ros.h"
 
 using json = nlohmann::json;
 using namespace std;
