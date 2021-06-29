@@ -9,6 +9,7 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 
+
 using namespace std;
 
 
@@ -45,7 +46,6 @@ SwarmUIDeployment::SwarmUIDeployment(wxWindow * parent,
     //   It's probably an anti-pattern but I'm so used to Java that it feels better than using a static function
     imageChoice->Bind(wxEVT_COMMAND_CHOICE_SELECTED, [&](auto e) { this->onChoiceMade(e); });
     installButton->Bind(wxEVT_COMMAND_CHOICE_SELECTED, [&](auto e) { this->onInstallPressed(e); });
-
 }
 
 SwarmUIDeployment::~SwarmUIDeployment(){
@@ -71,5 +71,7 @@ void SwarmUIDeployment::onChoiceMade(wxCommandEvent & event) const {
 }
 
 void SwarmUIDeployment::onInstallPressed(wxCommandEvent & event) const {
+
+
     // TODO: will need to link with ROS here
 }

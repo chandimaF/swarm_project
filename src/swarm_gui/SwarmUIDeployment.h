@@ -19,6 +19,8 @@ public:
 
     int nImages = 0;
 
+    int serverSocket;
+
     SwarmUIDeployment(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style,
                       const wxString &name);
     ~SwarmUIDeployment() override;
@@ -30,6 +32,7 @@ public:
     void onInstallPressed(wxCommandEvent &event) const;
 
     std::string getSelectedImage() const;
+
 };
 
 
