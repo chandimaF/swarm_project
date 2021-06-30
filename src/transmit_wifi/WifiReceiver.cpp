@@ -62,11 +62,15 @@ int main(int argc, char ** argv) {
         ROS_WARN("Accept failed.");
         exit(EXIT_FAILURE);
     }
+
+    size_t nRead;
     while(ros::ok()) {
 
-        if(read(new_socket, buffer, 1024) > 0) {
+        if((nRead = read(new_socket, buffer, 1024)) > 0) {
             std_msgs::ByteMultiArray msg = std_msgs::ByteMultiArray();
-            copy(begin(buffer), end(buffer), begin(msg.data));
+            for(int i = 0; i < nRead; i++) {
+                msg.data[i] = buffer[i];
+            }
             pub.publish(msg);
             ROS_INFO("Received message via existing network");
         }

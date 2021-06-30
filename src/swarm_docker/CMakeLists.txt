@@ -10,9 +10,3 @@ project(swarm_docker)
 find_package(catkin REQUIRED COMPONENTS roscpp std_msgs)
 include_directories(${catkin_INCLUDE_DIRS})
 
-add_executable(test_docker
-        DockerImagePusher.cpp
-        DockerImagePusher.h
-        )
-
-target_link_libraries(test_docker ${catkin_LIBRARIES})
