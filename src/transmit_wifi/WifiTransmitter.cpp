@@ -8,6 +8,7 @@
 
 using namespace std;
 
+//#define HOST "10.42.0.190"
 #define HOST "127.0.0.1"
 #define SERVER_PORT 5000
 #define CLIENT_PORT 5001
