@@ -73,7 +73,7 @@ int main(int argc, char ** argv) {
         if(has_client && (nRead = read(current_client, buffer, 1024)) > 0) {
             ROS_INFO("Received message via existing network");
             transmit_wifi::Transmission msg;
-            auto bytes = vector<signed char>(buffer, buffer + nRead);
+            vector<signed char> bytes = vector<signed char>(buffer, buffer + nRead);
             msg.data = bytes;
             msg.length = nRead;
             pub.publish(msg);
