@@ -6,8 +6,6 @@
 #include "SoftwareDistributor.h"
 #include <wx/button.h>
 #include <wx/choice.h>
-#include "ros/ros.h"
-#include "std_msgs/String.h"
 
 
 using namespace std;

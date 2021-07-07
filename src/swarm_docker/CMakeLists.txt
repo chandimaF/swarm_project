@@ -7,6 +7,13 @@ project(swarm_docker)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+
+add_executable(swarm_patch_test
+        SwarmPatch.cpp
+        SwarmPatch.h
+        )
+
+
 find_package(catkin REQUIRED COMPONENTS roscpp std_msgs)
 include_directories(${catkin_INCLUDE_DIRS})
 

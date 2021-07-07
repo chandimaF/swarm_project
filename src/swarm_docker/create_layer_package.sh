@@ -9,6 +9,7 @@ RUN_DIR=$(pwd)
 mkdir /tmp/swarm_project
 cd /tmp/swarm_project || exit
 mkdir all
+mkdir pack
 
 docker save "$1" > all.tar
 tar -xf ./all.tar -C ./all
@@ -29,12 +30,13 @@ N_REMOVE=$((N_FILES-$2))
 echo "Pruning $N_REMOVE layer(s) [$N_FILES total layers, $2 to be kept]"
 i=0
 
+
 for f in $LIST
 do
   FILE="${f:1}"
-  if ((i < N_REMOVE)); then
-    echo "Pruned layer $FILE from package"
-    rm -r "$FILE"
+  if ((i >= N_REMOVE)); then
+    echo "Using layer $FILE in package"
+    mv "$FILE"/
   fi
   i=$((i+1))
 done

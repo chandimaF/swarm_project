@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
         message_generation
         )
 
+
 include_directories(
         ../../devel/include # Hack for Clion.
         ${catkin_INCLUDE_DIRS}
@@ -25,6 +26,7 @@ add_message_files(
 generate_messages(
         DEPENDENCIES
         std_msgs
+        transmit_wifi
 )
 
 catkin_package(
