@@ -15,6 +15,10 @@ using namespace std;
 
 #define SERVER_PORT 5000
 
+// Thunder and <global variables>, very very frightening
+//    (but there's a good reason for this one; it's nice for debugging)
+long totalMessages = 0;
+
 void processTraffic(int socket, ros::Publisher pub);
 
 int main(int argc, char ** argv) {
@@ -107,12 +111,13 @@ void processTraffic(int sock, ros::Publisher pub) {
     char buffer[1024] = {0}; // Messages are 1024 bytes long here - which is not always going to be true!
 
     if((nRead = read(sock, buffer, 1024)) > 0) {
-        ROS_INFO("Received message via existing network");
         transmit_wifi::Transmission msg;
         vector<signed char> bytes = vector<signed char>(buffer, buffer + nRead);
         msg.data = bytes;
         msg.length = nRead;
         pub.publish(msg);
-        ROS_INFO("Published received message");
+        if(totalMessages % 200 == 0) {
+            cout << "Total messages received: " << to_string(totalMessages) << "  |  byte sample: " << to_string((int) bytes[0]);
+        }
     }
 }
