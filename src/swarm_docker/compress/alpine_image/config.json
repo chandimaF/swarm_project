@@ -1,7 +1,0 @@
-{"architecture":"amd64",
-  "rootfs":{"type":"layers",
-"diff_ids":["sha256:72e830a4dff5f0d5225cdc0a320e85ab1ce06ea5673acfe8d83a7645cbd0e9cf"]},
-"config": {"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],
-"Cmd":["sh"]},
-"container_config": {"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],
-"Cmd":["sh"]}}
