@@ -7,18 +7,14 @@ project(apply_swarm_patch)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs transmit_wifi swarm_utilities)
+find_package(catkin REQUIRED COMPONENTS roscpp std_msgs transmit_wifi)
 find_package(Boost REQUIRED COMPONENTS filesystem iostreams)
 
 add_library(nlohmann_json ../../lib/json.cpp)
 add_library(sha256 ../../lib/sha256.cpp)
 
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES swarm_utilities
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS message_runtime
-        CATKIN_DEPENDS message_runtime transmit_wifi swarm_utilities
+        CATKIN_DEPENDS message_runtime transmit_wifi
 )
 
 include_directories(

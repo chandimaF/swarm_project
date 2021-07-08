@@ -12,11 +12,14 @@ set(CURL_LIBRARY "-lcurl")
 
 find_package(catkin REQUIRED COMPONENTS roscpp)
 find_package(CURL REQUIRED)
-find_package(nlohmann_json 3.2.0 REQUIRED)
 find_package(wxWidgets COMPONENTS core base REQUIRED)
 
 include( "${wxWidgets_USE_FILE}" )
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(
+        ../../devel/include # Hack for Clion.
+        ../../lib
+        ${catkin_INCLUDE_DIRS}
+)
 
 add_executable(swarm_project
         wxsmith/SwarmUIframe.wxs
@@ -29,10 +32,7 @@ add_executable(swarm_project
         SwarmUIMain.cpp
         SwarmUIMain.h)
 
-target_link_libraries(swarm_project ${wxWidgets_LIBRARIES} ${CURL_LIBRARIES} nlohmann_json::nlohmann_json)
-
-
-
+target_link_libraries(swarm_project ${wxWidgets_LIBRARIES} ${CURL_LIBRARIES} nlohmann_json)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

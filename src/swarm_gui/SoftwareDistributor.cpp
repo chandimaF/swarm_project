@@ -1,6 +1,6 @@
 #include "SoftwareDistributor.h"
 #include <curl/curl.h>
-#include <nlohmann/json.hpp>
+#include <json.cpp>
 #include <string>
 #include <iostream>
 #include "ros/ros.h"
