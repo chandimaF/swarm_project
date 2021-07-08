@@ -97,13 +97,9 @@ void PatchReceiver::unpack() {
     in.push(boost::iostreams::gzip_decompressor());
     in.push(archiveFile);
 
-    try {
-        boost::iostreams::copy(in, layerFile);
-        archiveFile.close();
-        layerFile.close();
-    } catch(boost::wrapexcept<boost::iostreams::gzip_error> & e) {
-        cerr << "Error: Could not unpack transmitted image layer (" << e.what() << ")\n";
-    }
+    boost::iostreams::copy(in, layerFile);
+    archiveFile.close();
+    layerFile.close();
 }
 
 void PatchReceiver::build() {

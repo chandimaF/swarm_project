@@ -73,13 +73,9 @@ void PatchTransmitter::pack() {
     out.push(boost::iostreams::gzip_compressor(boost::iostreams::gzip_params(boost::iostreams::gzip::best_compression)));
     out.push(layerFile);
 
-    try {
-        boost::iostreams::copy(out, archiveFile);
-        archiveFile.close();
-        layerFile.close();
-    } catch(boost::wrapexcept<boost::iostreams::gzip_error> & e) {
-        cerr << "Error: Could not pack image layer (" << e.what() << ")\n";
-    }
+    boost::iostreams::copy(out, archiveFile);
+    archiveFile.close();
+    layerFile.close();
 }
 
 void PatchTransmitter::transmit() {
