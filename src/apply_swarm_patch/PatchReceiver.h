@@ -6,14 +6,29 @@
 #define SWARM_PROJECT_PATCHRECEIVER_H
 
 #include <string>
+#include <boost/shared_ptr.hpp>
+#include <transmit_wifi/Transmission.h>
+#include <ros/ros.h>
+
+#define DEFAULT_SWARM_DIR "/home/miles/swarmpatch"
 
 using namespace std;
 
 class PatchReceiver {
 public:
-    void dumpBytes(unsigned char *bytes, string & project, int version);
-    void unpack(string & project, int version);
-    void apply(string & name, int version);
+    ros::Subscriber sub;
+    string swarmDir;
+    const string & project;
+    int version;
+
+
+    PatchReceiver(const string &project, int version, ros::Subscriber & sub);
+    void dumpBytes(unsigned char *bytes);
+    void unpack();
+    void build();
+    void apply();
+    void checkPaths();
+    void onIncomingChunk(const boost::shared_ptr<const transmit_wifi::Transmission_<allocator<void>>> &msg);
 };
 
 
