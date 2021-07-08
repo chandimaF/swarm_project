@@ -3,7 +3,6 @@
 //
 
 #include <fstream>
-#include "sha256.h"
 #include "PatchReceiver.h"
 #include <transmit_wifi/Transmission.h>
 #include <boost/filesystem.hpp>
@@ -12,6 +11,7 @@
 #include <boost/iostreams/copy.hpp>
 #include <iostream>
 #include <ros/ros.h>
+#include <sha256.h>
 
 int main() {
     ros::NodeHandle nh;

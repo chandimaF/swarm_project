@@ -8,10 +8,10 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
-#include <nlohmann/json.hpp>
 #include <iostream>
 #include "PatchTransmitter.h"
 #include <transmit_wifi/Transmission.h>
+#include <json.cpp>
 
 using namespace std;
 using json = nlohmann::json;
