@@ -13,7 +13,8 @@
 #include <ros/ros.h>
 #include <sha256.h>
 
-int main() {
+int main(int argc, char ** argv) {
+    ros::init(argc, argv, "patch_receiver");
     ros::NodeHandle nh;
     ros::Subscriber s;
 
