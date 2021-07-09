@@ -39,6 +39,7 @@ int main(int argc, char ** argv) {
     while ((lastMessageReceived == 0 || millitime() < lastMessageReceived + TIMEOUT) && ros::ok()) {
         ros::spinOnce();
     }
+    if(lastMessageReceived == 0) cout << "Final message received at " << to_string(lastMessageReceived) << "\n";
 
     p->unpack();
     p->build();
@@ -95,6 +96,8 @@ void PatchReceiver::dumpBytes(unsigned char *bytes, int len) {
     // This spits bytes (incoming via Chandima's data receiving system) into a corresponding .tar.gz file.
     //    It assumes that the data receiver knows the project name and version, and provides the bytes
     //    in order.
+
+    if(lastMessageReceived == 0) cout << "First message received at " << to_string(millitime()) << "\n";
 
     checkPaths();
     string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
