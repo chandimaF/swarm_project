@@ -73,6 +73,8 @@ int main(int argc, char ** argv) {
             if((newSocket = accept(server_fd, (struct sockaddr *) &serverAddr,
                                    (socklen_t *) &addrSize)) < 0) {
                 ROS_WARN("Could not accept a client");
+            } else {
+                ROS_INFO("Received a client; processing traffic");
             }
         } else {
             processTraffic(newSocket, &pub);
