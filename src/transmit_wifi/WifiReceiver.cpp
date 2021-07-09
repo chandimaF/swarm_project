@@ -24,6 +24,9 @@ int main(int argc, char ** argv) {
     ros::init(argc, argv, "wifi_receiver");
     ros::NodeHandle nodeHandle;
     ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 10000);
+    if(! pub) {
+        ROS_WARN("Could not get publisher for WiFi receiver!");
+    }
 
     int server_fd, newSocket;
     struct sockaddr_in serverAddr;
@@ -62,25 +65,18 @@ int main(int argc, char ** argv) {
     int currentClient = 0;
 
     size_t nRead;
+    newSocket = 0;
 
     while(ros::ok()) {
-        // Look for a pending client
-        if((newSocket = accept(server_fd, (struct sockaddr *) &serverAddr,
-                               (socklen_t *) &addrSize)) < 0) {
-            ROS_WARN("Could not accept a client");
-        }
-
-        pid_t childProcess = fork();
-        if (childProcess == -1) {
-            perror("Unable to create new process for client connection");
-            exit(1);
-        }
-        else if (childProcess == 0) {
-            while(ros::ok()) {
-                processTraffic(newSocket, &pub);
+        if(newSocket == 0) {
+            // Look for a pending client
+            if((newSocket = accept(server_fd, (struct sockaddr *) &serverAddr,
+                                   (socklen_t *) &addrSize)) < 0) {
+                ROS_WARN("Could not accept a client");
             }
-        }
-        else {
+        } else {
+            processTraffic(newSocket, &pub);
+
             // use the poll system call to be notified about socket status changes
             struct pollfd pfd;
             char buffer[1024] = {0};
@@ -92,11 +88,8 @@ int main(int argc, char ** argv) {
                 if (poll(&pfd, 1, 100) > 0) {
                     // if result > 0, this means that there is either data, or socket is closed
                     if (recv(newSocket, buffer, sizeof(buffer), MSG_PEEK | MSG_DONTWAIT) == 0) {
-                        // if recv returns zero, connection closed; kill the child process
-                        int status = 0;
-                        kill(childProcess, SIGKILL);
-                        waitpid(childProcess, &status, WNOHANG);
                         close(newSocket);
+                        newSocket = 0;
                     }
                 }
             }
