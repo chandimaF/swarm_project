@@ -1,7 +1,6 @@
 // Server side C/C++ program to demonstrate Socket programming
 #include <unistd.h>
 #include <cstdio>
-#include <csignal>
 #include <sys/socket.h>
 #include <cstdlib>
 #include <netinet/in.h>
@@ -19,12 +18,12 @@ using namespace std;
 //    (but there's a good reason for this one; it's nice for debugging)
 long totalMessages = 0;
 
-void processTraffic(int socket, ros::Publisher pub);
+void processTraffic(int socket, ros::Publisher * pub);
 
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "wifi_receiver");
     ros::NodeHandle nodeHandle;
-    ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 1000);
+    ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 10000);
 
     int server_fd, newSocket;
     struct sockaddr_in serverAddr;
@@ -78,7 +77,7 @@ int main(int argc, char ** argv) {
         }
         else if (childProcess == 0) {
             while(ros::ok()) {
-                processTraffic(newSocket, pub);
+                processTraffic(newSocket, &pub);
             }
         }
         else {
@@ -105,7 +104,7 @@ int main(int argc, char ** argv) {
     }
 }
 
-void processTraffic(int sock, ros::Publisher pub) {
+void processTraffic(int sock, ros::Publisher * pub) {
 
     size_t nRead;
     char buffer[1024] = {0}; // Messages are 1024 bytes long here - which is not always going to be true!
@@ -119,7 +118,7 @@ void processTraffic(int sock, ros::Publisher pub) {
         msg.data = bytes;
         msg.length = nRead;
         cout << "> Publishing message...\n";
-        pub.publish(msg);
+        pub->publish(msg);
         cout << "> Transmission fully received\n";
     }
 }
