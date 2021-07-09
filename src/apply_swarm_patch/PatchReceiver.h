@@ -16,14 +16,14 @@ using namespace std;
 
 class PatchReceiver {
 public:
-    ros::Subscriber sub;
+    ros::Subscriber * sub;
     string swarmDir;
-    const string & project;
+    const string project;
     int version;
 
 
-    PatchReceiver(const string &project, int version, ros::Subscriber & sub);
-    void dumpBytes(unsigned char *bytes);
+    PatchReceiver(string project, int version, ros::Subscriber * sub);
+    void dumpBytes(unsigned char *bytes, int len);
     void unpack();
     void build();
     void apply();

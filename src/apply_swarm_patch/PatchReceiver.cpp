@@ -13,15 +13,36 @@
 #include <ros/ros.h>
 #include <sha256.h>
 
+// Timeout will be one second for now. In the future this should be wrapped by another layer that says when exactly to be done,
+// but that's not a priority here.
+#define TIMEOUT 1000
+
+
+long lastMessageReceived = 0;
+
+long millitime() {
+    // i love oop but this snippet belongs in the tenth circle of hell (verbosity)
+    return std::chrono::duration_cast<std::chrono::milliseconds >(
+            std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+}
+
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "patch_receiver");
     ros::NodeHandle nh;
     ros::Subscriber s;
 
-    auto * p = new PatchReceiver("alpine", 1, s);
-    p->sub = nh.subscribe("/wifi_in", 1000, &PatchReceiver::onIncomingChunk, p); // smells bidependent
+    auto * p = new PatchReceiver("alpine", 1, &s);
+    s = nh.subscribe("/wifi_in", 100000, &PatchReceiver::onIncomingChunk, p);
 
-    ros::spin();
+    // await messages until the first one is received, then wait until a timeout for more
+    while ((lastMessageReceived == 0 || millitime() < lastMessageReceived + TIMEOUT) && ros::ok()) {
+        ros::spinOnce();
+    }
+
+    p->unpack();
+    p->build();
+    p->apply();
 }
 
 string getVersionSHA256(string & layerPath) {
@@ -37,10 +58,16 @@ string getVersionSHA256(string & layerPath) {
     return sha.getHash();
 }
 
-PatchReceiver::PatchReceiver(const string & p, int v, ros::Subscriber & s): project(p), version(v), sub(s) {
+PatchReceiver::PatchReceiver(string p, int v, ros::Subscriber * s): project(p), version(v), sub(s) {
     char * envSwarmDir = getenv("SWARM_DIR");
     if(envSwarmDir == nullptr) this->swarmDir = DEFAULT_SWARM_DIR;
     else this->swarmDir = string(envSwarmDir);
+
+    checkPaths();
+    boost::filesystem::remove_all(swarmDir + "/outbound/" + project + "/");
+    boost::filesystem::remove_all(swarmDir + "/incoming/" + project + "/");
+    boost::filesystem::remove_all(swarmDir + "/images/" + project + "/");
+
     cout << "Preparing to receive project " + project + " v" + to_string(version) + " in " + swarmDir << "\n";
 }
 
@@ -54,13 +81,16 @@ void PatchReceiver::checkPaths() {
     boost::filesystem::create_directory(swarmDir + "/outbound/" + project);
 }
 
+long totalBytes = 0;
 void PatchReceiver::onIncomingChunk(const transmit_wifi::Transmission::ConstPtr & msg) {
-    size_t nbytes = msg->data.size();
+    totalBytes += 256;
+    cout << "Captured incoming chunk! ("+to_string(totalBytes)+" bytes total)\n";
     const signed char * bytes = msg.get()->data.data();
-    dumpBytes((unsigned char *) bytes);
+    dumpBytes((unsigned char *) bytes, msg.get()->length);
+    lastMessageReceived = millitime();
 }
 
-void PatchReceiver::dumpBytes(unsigned char *bytes) {
+void PatchReceiver::dumpBytes(unsigned char *bytes, int len) {
 
     // This spits bytes (incoming via Chandima's data receiving system) into a corresponding .tar.gz file.
     //    It assumes that the data receiver knows the project name and version, and provides the bytes
@@ -70,7 +100,7 @@ void PatchReceiver::dumpBytes(unsigned char *bytes) {
     string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
     ofstream file;
     file.open(archivePath, fstream::out | fstream::app | fstream::binary);
-    file << bytes;
+    file.write((const char *) (bytes), len);
     file.close();
 }
 
@@ -91,16 +121,18 @@ void PatchReceiver::unpack() {
     string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
     string layerPath = swarmDir + "/images/" + project + "/" + to_string(version) + ".tar";
 
-    ifstream archiveFile(archivePath, ifstream::in | ifstream::binary);
-    ofstream layerFile(layerPath, ofstream::out | ofstream::binary);
+//    ifstream archiveFile(archivePath, ifstream::in | ifstream::binary);
+//    ofstream layerFile(layerPath, ofstream::out | ofstream::binary);
 
-    boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-    in.push(boost::iostreams::gzip_decompressor());
-    in.push(archiveFile);
+    system(("gunzip -c " + archivePath + " > " + layerPath).c_str());
 
-    boost::iostreams::copy(in, layerFile);
-    archiveFile.close();
-    layerFile.close();
+//    boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+//    in.push(boost::iostreams::gzip_decompressor());
+//    in.push(archiveFile);
+//
+//    boost::iostreams::copy(in, layerFile);
+//    archiveFile.close();
+//    layerFile.close();
 }
 
 void PatchReceiver::build() {

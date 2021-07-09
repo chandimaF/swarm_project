@@ -12,13 +12,13 @@ using namespace std;
 
 class PatchTransmitter {
 
-    ros::Publisher pub;
+    ros::Publisher * pub;
     string swarmDir;
-    const string & project;
+    const string project;
     int version;
 
 public:
-    PatchTransmitter(const string & project, int version, ros::Publisher & output);
+    PatchTransmitter(string project, int version, ros::Publisher * output);
     void checkPaths();
     void pack();
     void transmit();

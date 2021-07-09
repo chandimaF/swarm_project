@@ -46,5 +46,10 @@ add_executable(wifi_transmitter
         WifiTransmitter.cpp
         )
 
+add_executable(wifi_loopback
+        WifiLoopback.cpp
+        )
+
 target_link_libraries(wifi_receiver ${catkin_LIBRARIES})
 target_link_libraries(wifi_transmitter ${catkin_LIBRARIES})
+target_link_libraries(wifi_loopback ${catkin_LIBRARIES})

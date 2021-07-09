@@ -22,16 +22,19 @@ int main(int argc, char ** argv) {
     ros::NodeHandle nh;
     ros::Publisher pub = nh.advertise<transmit_wifi::Transmission>("/wifi_out", 1000);
 
-    auto * pt = new PatchTransmitter("alpine", 1, pub);
+    auto * pt = new PatchTransmitter("alpine", 1, &pub);
 
     pt->pack();
     pt->transmit();
 }
 
-PatchTransmitter::PatchTransmitter(const string & p, int v, ros::Publisher & o): project(p), version(v), pub(o) {
+PatchTransmitter::PatchTransmitter(string p, int v, ros::Publisher * o): project(p), version(v), pub(o) {
     char * envSwarmDir = getenv("SWARM_DIR");
     if(envSwarmDir == nullptr) this->swarmDir = DEFAULT_SWARM_DIR;
     else this->swarmDir = string(envSwarmDir);
+
+    checkPaths();
+    boost::filesystem::remove_all(swarmDir + "/packs/" + project + "/");
 
     cout << "Preparing to transmit project " + project + " v" + to_string(version) + " in " + swarmDir << "\n";
 }
@@ -62,41 +65,51 @@ void PatchTransmitter::pack() {
     file.close();
     string layer = j[0]["Layers"][version - 1];
 
-
     string layerPath = swarmDir + "/packs/" + project + "/" + to_string(version) + "/" + layer;
     string archivePath = swarmDir + "/packs/" + project + "/" + to_string(version) + ".tar.gz";
+    cout << "Zipping layer at " << layerPath << " to archive " << archivePath << "\n";
 
-    ifstream layerFile(layerPath, ifstream::in | ofstream::binary);
-    ofstream archiveFile(archivePath, ofstream::out | ifstream::binary);
+//    ifstream layerFile(layerPath, ifstream::in | ofstream::binary);
+//    ofstream archiveFile(archivePath, ofstream::out | ifstream::binary);
 
-    boost::iostreams::filtering_streambuf<boost::iostreams::input> out;
-    out.push(boost::iostreams::gzip_compressor(boost::iostreams::gzip_params(boost::iostreams::gzip::best_compression)));
-    out.push(layerFile);
+    // I was doing this with Boost, but frankly, I hate working with tar files; they yield eof in weird places and
+    //    the format seems inconsistent
+    // So let's just use the gzip utility :/
 
-    boost::iostreams::copy(out, archiveFile);
-    archiveFile.close();
-    layerFile.close();
+    system(("gzip -c " + layerPath + " > " + archivePath).c_str());
+
+//    boost::iostreams::filtering_streambuf<boost::iostreams::input> out;
+//    out.push(boost::iostreams::gzip_compressor(boost::iostreams::gzip_params(boost::iostreams::gzip::best_compression)));
+//    out.push(layerFile);
+//
+//    boost::iostreams::copy(out, archiveFile);
+//    archiveFile.close();
+//    layerFile.close();
 }
 
+long totalBytes = 0;
 void PatchTransmitter::transmit() {
     checkPaths();
     cout << "Transmitting project " + project + " v" + to_string(version) << "\n";
 
-    signed char buffer[256];
+    auto * buffer = (char *) calloc(256, 1);
     string archivePath = swarmDir + "/packs/" + project + "/" + to_string(version) + ".tar.gz";
     ifstream file(archivePath, ifstream::in | ofstream::binary);
 
     while(! file.eof()) {
         transmit_wifi::Transmission msg;
+        file.read(buffer, 256);
+        totalBytes += 256;
+        cout << "Pushing chunks of layer from " << archivePath << " (" + to_string(totalBytes) + " bytes total)\n";
         vector<signed char> bytes = vector<signed char>(buffer, buffer + 256);
         msg.data = bytes;
         msg.length = 256;
-        pub.publish(msg);
+        pub->publish(msg);
     }
 }
 
 
-// Here's some legacy code that simply copies the file into the corresponding local swarmpatch/incoming -
+// Here's some old code that simply copies the file into the corresponding local swarmpatch/incoming -
 //    useful for testing
 
 //void PatchTransmitter::transmit() {
