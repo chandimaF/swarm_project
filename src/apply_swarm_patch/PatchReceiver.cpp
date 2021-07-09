@@ -12,6 +12,7 @@
 #include <iostream>
 #include <ros/ros.h>
 #include <sha256.h>
+#include <time.h>
 
 // Timeout will be one second for now. In the future this should be wrapped by another layer that says when exactly to be done,
 // but that's not a priority here.
@@ -22,9 +23,9 @@ long lastMessageReceived = 0;
 
 long millitime() {
     // i love oop but this snippet belongs in the tenth circle of hell (verbosity)
-    return std::chrono::duration_cast<std::chrono::milliseconds >(
-            std::chrono::system_clock::now().time_since_epoch()
-    ).count();
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    return tp.tv_sec * 1000 + tp.tv_usec / 1000;
 }
 
 int main(int argc, char ** argv) {
