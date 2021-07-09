@@ -1,5 +1,3 @@
 <launch>
-    <node name="wifi_transmitter" pkg="transmit_wifi" type="wifi_transmitter" />
-    <node name="wifi_receiver" pkg="transmit_wifi" type="wifi_receiver" />
     <node name="wifi_loopback" pkg="transmit_wifi" type="wifi_loopback" />
 </launch>

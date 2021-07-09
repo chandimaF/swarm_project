@@ -15,8 +15,6 @@ using namespace std;
 
 #define SERVER_PORT 5000
 
-// Thunder and <global variables>, very very frightening
-//    (but there's a good reason for this one; it's nice for debugging)
 long totalMessages = 0;
 
 void processTraffic(int socket, ros::Publisher pub);
@@ -24,7 +22,7 @@ void processTraffic(int socket, ros::Publisher pub);
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "wifi_receiver");
     ros::NodeHandle nodeHandle;
-    ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 1000);
+    ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 1000000);
 
     int server_fd, newSocket;
     struct sockaddr_in serverAddr;
@@ -116,8 +114,5 @@ void processTraffic(int sock, ros::Publisher pub) {
         msg.data = bytes;
         msg.length = nRead;
         pub.publish(msg);
-        if(totalMessages % 200 == 0) {
-            cout << "Total messages received: " << to_string(totalMessages) << "  |  byte sample: " << to_string((int) bytes[0]);
-        }
     }
 }
