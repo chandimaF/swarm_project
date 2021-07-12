@@ -90,10 +90,7 @@ void PatchReceiver::onIncomingChunk(const transmit_wifi::Transmission::ConstPtr 
     const signed char * bytes = msg.get()->data.data();
     int n = msg.get()->length;
 
-    int msgNum = bytes[n-1] * 256 * 256 * 256;
-    msgNum += bytes[n-2] * 256 * 256;
-    msgNum += bytes[n-3] * 256;
-    msgNum += bytes[n-4];
+    unsigned char msgNum = bytes[n-1];
     cout << "Inferred message number: " << to_string(msgNum) << "\n";
 
     dumpBytes((unsigned char *) bytes, msg.get()->length-4);
