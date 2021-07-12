@@ -20,7 +20,7 @@ int main(int argc, char ** argv) {
 
     ros::init(argc, argv, "patch_transmitter");
     ros::NodeHandle nh;
-    ros::Publisher pub = nh.advertise<transmit_wifi::Transmission>("/wifi_out", 1000);
+    ros::Publisher pub = nh.advertise<transmit_wifi::Transmission>("/wifi_out", 0);
 
     auto * pt = new PatchTransmitter("alpine", 1, &pub);
 

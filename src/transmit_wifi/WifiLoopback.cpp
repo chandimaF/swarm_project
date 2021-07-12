@@ -14,8 +14,8 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "wifi_transmitter");
     ros::NodeHandle nodeHandle;
-    pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 1000);
-    ros::Subscriber sub = nodeHandle.subscribe("/wifi_out", 1000, onWifiIn);
+    pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 0);
+    ros::Subscriber sub = nodeHandle.subscribe("/wifi_out", 0, onWifiIn);
 
     while(ros::ok()) {
         ros::spin();

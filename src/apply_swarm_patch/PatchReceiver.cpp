@@ -34,7 +34,7 @@ int main(int argc, char ** argv) {
     ros::Subscriber s;
 
     auto * p = new PatchReceiver("alpine", 1, &s);
-    s = nh.subscribe("/wifi_in", 100000, &PatchReceiver::onIncomingChunk, p);
+    s = nh.subscribe("/wifi_in", 0, &PatchReceiver::onIncomingChunk, p);
 
     // await messages until the first one is received, then wait until a timeout for more
     while ((lastMessageReceived == 0 || millitime() < lastMessageReceived + TIMEOUT) && ros::ok()) {

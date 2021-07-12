@@ -8,8 +8,8 @@
 
 using namespace std;
 
-//#define HOST "10.42.0.190"
-#define HOST "127.0.0.1"
+#define HOST "10.42.0.190"
+//#define HOST "127.0.0.1"
 #define SERVER_PORT 5000
 #define CLIENT_PORT 5001
 
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     ROS_INFO("Socket connected to server");
 
     // We want to transmit out of that socket into /wifi_out as needed.
-    ros::Subscriber sub = nodeHandle.subscribe("/wifi_out", 100, onTransmitRequested);
+    ros::Subscriber sub = nodeHandle.subscribe("/wifi_out", 0, onTransmitRequested);
 
     // I don't *think* this socket getting closed spontaneously will be a problem. But it might be better to set
     //   SO_KEEPALIVE? We'll see.

@@ -23,7 +23,7 @@ void processTraffic(int socket, ros::Publisher * pub);
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "wifi_receiver");
     ros::NodeHandle nodeHandle;
-    ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 10000);
+    ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 0);
     if(! pub) {
         ROS_WARN("Could not get publisher for WiFi receiver!");
     }
