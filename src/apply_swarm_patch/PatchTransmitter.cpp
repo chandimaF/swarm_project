@@ -93,20 +93,27 @@ void PatchTransmitter::transmit() {
     checkPaths();
     cout << "Transmitting project " + project + " v" + to_string(version) << "\n";
 
-    auto * buffer = (char *) calloc(2048, 1);
+    auto * buffer = (char *) calloc(2052, 1);
     string archivePath = swarmDir + "/packs/" + project + "/" + to_string(version) + ".tar.gz";
     ifstream file(archivePath, ifstream::in | ofstream::binary);
 
-    ros::Rate rate(100);
+    ros::Rate rate(50);
+    int i = 0;
     while(! file.eof()) {
         transmit_wifi::Transmission msg;
         file.read(buffer, 2048);
+        buffer[2048] = (char) (i / (256*256*256));
+        buffer[2049] = (char) (i / (256*256) % 256);
+        buffer[2050] = (char) (i / (256) % (256*256));
+        buffer[2051] = (char) (i % (256*256*256));
+
         totalBytes += 2048;
         cout << "Pushing chunks of layer from " << archivePath << " (" + to_string(totalBytes) + " bytes total)\n";
-        vector<signed char> bytes = vector<signed char>(buffer, buffer + file.gcount());
+        vector<signed char> bytes = vector<signed char>(buffer, buffer + file.gcount() + 4);
         msg.data = bytes;
         msg.length = file.gcount();
         pub->publish(msg);
+        i++;
         ros::spinOnce();
         rate.sleep();
     }
