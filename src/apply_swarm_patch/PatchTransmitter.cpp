@@ -24,8 +24,9 @@ int main(int argc, char ** argv) {
 
     auto * pt = new PatchTransmitter("alpine", 1, &pub);
 
-    pt->pack();
+//    pt->pack();
     pt->transmit();
+//    ros::spin();
 }
 
 PatchTransmitter::PatchTransmitter(string p, int v, ros::Publisher * o): project(p), version(v), pub(o) {
@@ -34,7 +35,7 @@ PatchTransmitter::PatchTransmitter(string p, int v, ros::Publisher * o): project
     else this->swarmDir = string(envSwarmDir);
 
     checkPaths();
-    boost::filesystem::remove_all(swarmDir + "/packs/" + project + "/");
+//    boost::filesystem::remove_all(swarmDir + "/packs/" + project + "/");
 
     cout << "Preparing to transmit project " + project + " v" + to_string(version) + " in " + swarmDir << "\n";
 }
@@ -92,19 +93,22 @@ void PatchTransmitter::transmit() {
     checkPaths();
     cout << "Transmitting project " + project + " v" + to_string(version) << "\n";
 
-    auto * buffer = (char *) calloc(256, 1);
+    auto * buffer = (char *) calloc(2048, 1);
     string archivePath = swarmDir + "/packs/" + project + "/" + to_string(version) + ".tar.gz";
     ifstream file(archivePath, ifstream::in | ofstream::binary);
 
+    ros::Rate rate(100);
     while(! file.eof()) {
         transmit_wifi::Transmission msg;
-        file.read(buffer, 256);
-        totalBytes += 256;
+        file.read(buffer, 2048);
+        totalBytes += 2048;
         cout << "Pushing chunks of layer from " << archivePath << " (" + to_string(totalBytes) + " bytes total)\n";
-        vector<signed char> bytes = vector<signed char>(buffer, buffer + 256);
+        vector<signed char> bytes = vector<signed char>(buffer, buffer + file.gcount());
         msg.data = bytes;
-        msg.length = 256;
+        msg.length = file.gcount();
         pub->publish(msg);
+        ros::spinOnce();
+        rate.sleep();
     }
 }
 

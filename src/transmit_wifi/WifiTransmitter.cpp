@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     ROS_INFO("Socket connected to server");
 
     // We want to transmit out of that socket into /wifi_out as needed.
-    ros::Subscriber sub = nodeHandle.subscribe("/wifi_out", 0, onTransmitRequested);
+    ros::Subscriber sub = nodeHandle.subscribe("/wifi_out", 10000, onTransmitRequested);
 
     // I don't *think* this socket getting closed spontaneously will be a problem. But it might be better to set
     //   SO_KEEPALIVE? We'll see.

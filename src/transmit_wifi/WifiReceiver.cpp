@@ -102,9 +102,9 @@ int main(int argc, char ** argv) {
 void processTraffic(int sock, ros::Publisher * pub) {
 
     size_t nRead;
-    char buffer[1024] = {0}; // Messages are 1024 bytes long here - which is not always going to be true!
+    char buffer[2048] = {0}; // Messages are 1024 bytes long here - which is not always going to be true!
 
-    if((nRead = read(sock, buffer, 1024)) > 0) {
+    if((nRead = read(sock, buffer, 2048)) > 0) {
         cout << "Incoming transmission...\n";
         transmit_wifi::Transmission msg;
         cout << "> Gathering bytes...\n";

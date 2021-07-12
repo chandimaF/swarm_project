@@ -85,7 +85,7 @@ void PatchReceiver::checkPaths() {
 
 long totalBytes = 0;
 void PatchReceiver::onIncomingChunk(const transmit_wifi::Transmission::ConstPtr & msg) {
-    totalBytes += 256;
+    totalBytes += msg.get()->length;
     cout << "Captured incoming chunk! ("+to_string(totalBytes)+" bytes total)\n";
     const signed char * bytes = msg.get()->data.data();
     dumpBytes((unsigned char *) bytes, msg.get()->length);
