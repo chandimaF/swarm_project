@@ -1,5 +1,5 @@
 # Transmission.msg
 
-string connection
-int16 length
-int8[] data
+string name
+string ip
+int16 port

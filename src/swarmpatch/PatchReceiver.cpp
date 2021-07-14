@@ -4,15 +4,13 @@
 
 #include <fstream>
 #include "PatchReceiver.h"
+#include "PatchUtil.h"
 #include <transmit_wifi/Transmission.h>
 #include <boost/filesystem.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-#include <boost/iostreams/copy.hpp>
 #include <iostream>
+#include <utility>
 #include <ros/ros.h>
 #include <sha256.h>
-#include <time.h>
 
 // Timeout will be one second for now. In the future this should be wrapped by another layer that says when exactly to be done,
 // but that's not a priority here.
@@ -21,26 +19,19 @@
 
 long lastMessageReceived = 0;
 
-long millitime() {
-    // i love oop but this snippet belongs in the tenth circle of hell (verbosity)
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    return tp.tv_sec * 1000 + tp.tv_usec / 1000;
-}
-
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "patch_receiver");
     ros::NodeHandle nh;
     ros::Subscriber s;
 
     auto * p = new PatchReceiver("alpine", 1, &s);
-    s = nh.subscribe("/wifi_in", 0, &PatchReceiver::onIncomingChunk, p);
+    s = nh.subscribe("wifi_in", 0, &PatchReceiver::onIncomingChunk, p);
 
     // await messages until the first one is received, then wait until a timeout for more
     while ((lastMessageReceived == 0 || millitime() < lastMessageReceived + TIMEOUT) && ros::ok()) {
         ros::spinOnce();
     }
-    if(lastMessageReceived == 0) cout << "Final message received at " << to_string(lastMessageReceived) << "\n";
+    if(lastMessageReceived == 0) ROS_INFO("[patch_receiver] Final message received at %ld", lastMessageReceived);
 
     p->unpack();
     p->build();
@@ -60,7 +51,7 @@ string getVersionSHA256(string & layerPath) {
     return sha.getHash();
 }
 
-PatchReceiver::PatchReceiver(string p, int v, ros::Subscriber * s): project(p), version(v), sub(s) {
+PatchReceiver::PatchReceiver(string p, int v, ros::Subscriber * s): project(std::move(p)), version(v), sub(s) {
     char * envSwarmDir = getenv("SWARM_DIR");
     if(envSwarmDir == nullptr) this->swarmDir = DEFAULT_SWARM_DIR;
     else this->swarmDir = string(envSwarmDir);
@@ -70,7 +61,7 @@ PatchReceiver::PatchReceiver(string p, int v, ros::Subscriber * s): project(p), 
     boost::filesystem::remove_all(swarmDir + "/incoming/" + project + "/");
     boost::filesystem::remove_all(swarmDir + "/images/" + project + "/");
 
-    cout << "Preparing to receive project " + project + " v" + to_string(version) + " in " + swarmDir << "\n";
+    ROS_INFO("[patch_receiver] Preparing to receive project %s v%d in %s", project.c_str(), version, swarmDir.c_str());
 }
 
 void PatchReceiver::checkPaths() {
@@ -87,13 +78,13 @@ long totalBytes = 0;
 void PatchReceiver::onIncomingChunk(const transmit_wifi::Transmission::ConstPtr & msg) {
     totalBytes += msg.get()->length;
     cout << "Captured incoming chunk! ("+to_string(totalBytes)+" bytes total)\n";
-    const signed char * bytes = msg.get()->data.data();
-    int n = msg.get()->length;
+    const unsigned char * bytes = msg.get()->data.data();
+    unsigned int n = msg.get()->length;
 
     unsigned char msgNum = bytes[n-1];
     cout << "Inferred message number: " << to_string(msgNum) << "\n";
 
-    dumpBytes((unsigned char *) bytes, msg.get()->length-4);
+    dumpBytes((unsigned char *) bytes, ((int) msg.get()->length)-4);
     lastMessageReceived = millitime();
 }
 

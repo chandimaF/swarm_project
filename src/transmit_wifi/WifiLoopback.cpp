@@ -12,10 +12,10 @@ void onWifiIn(const transmit_wifi::Transmission::ConstPtr & msg) {
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "wifi_transmitter");
+    ros::init(argc, argv, "wifi_loopback");
     ros::NodeHandle nodeHandle;
-    pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 0);
-    ros::Subscriber sub = nodeHandle.subscribe("/wifi_out", 0, onWifiIn);
+    pub = nodeHandle.advertise<transmit_wifi::Transmission>("wifi_in", 0);
+    ros::Subscriber sub = nodeHandle.subscribe("wifi_out", 0, onWifiIn);
 
     while(ros::ok()) {
         ros::spin();

@@ -20,7 +20,7 @@ int main(int argc, char ** argv) {
 
     ros::init(argc, argv, "patch_transmitter");
     ros::NodeHandle nh;
-    ros::Publisher pub = nh.advertise<transmit_wifi::Transmission>("/wifi_out", 0);
+    ros::Publisher pub = nh.advertise<transmit_wifi::Transmission>("wifi_out", 0);
 
     auto * pt = new PatchTransmitter("alpine", 1, &pub);
 
@@ -103,11 +103,9 @@ void PatchTransmitter::transmit() {
         transmit_wifi::Transmission msg;
         file.read(buffer, 2048);
         buffer[2048] = (char) (i % 256);
-
-
         totalBytes += 2048;
         cout << "Pushing chunks of layer from " << archivePath << " (" + to_string(totalBytes) + " bytes total)\n";
-        vector<signed char> bytes = vector<signed char>(buffer, buffer + file.gcount() + 1);
+        vector<unsigned char> bytes = vector<unsigned char>(buffer, buffer + file.gcount() + 1);
         msg.data = bytes;
         msg.length = file.gcount();
         pub->publish(msg);

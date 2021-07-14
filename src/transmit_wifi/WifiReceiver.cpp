@@ -1,119 +1,106 @@
 // Server side C/C++ program to demonstrate Socket programming
 #include <unistd.h>
-#include <cstdio>
 #include <sys/socket.h>
 #include <cstdlib>
 #include <netinet/in.h>
-#include <string>
 #include <ros/ros.h>
 #include <transmit_wifi/Transmission.h>
-#include <sys/poll.h>
-#include <sys/wait.h>
-
+#include <errno.h>
+#include <signal.h>
+#include <unordered_map>
+#include "WifiUtil.h"
 using namespace std;
+using namespace transmit_wifi;
 
-#define SERVER_PORT 5000
+#define SERVER_PORT 5001
 
-// Thunder and <global variables>, very very frightening
-//    (but there's a good reason for this one; it's nice for debugging)
-long totalMessages = 0;
+unordered_map<string, int> connections;
 
-void processTraffic(int socket, ros::Publisher * pub);
+int server_fd, client;
+void handleInterrupt(int sig){
+    ROS_WARN("[wifi_receiver] Closing open sockets");
+    close(server_fd);
+    close(client);
+    exit(0);
+}
+
+void onResponseRequested(const Transmission::ConstPtr & msg) {
+    ROS_INFO("[wifi_receiver] Sent reply of size %d to %s", msg->length, msg->connection.c_str());
+    if(msg->connection != "~") return; // we only handle responses here
+    transmit(client, msg);
+}
 
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "wifi_receiver");
     ros::NodeHandle nodeHandle;
-    ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("/wifi_in", 0);
-    if(! pub) {
-        ROS_WARN("Could not get publisher for WiFi receiver!");
-    }
+    ros::Subscriber sub = nodeHandle.subscribe("wifi_out", 1000, onResponseRequested);
+    ros::Publisher pub = nodeHandle.advertise<transmit_wifi::Transmission>("wifi_in", 0);
+    while(pub.getNumSubscribers() == 0) ros::spinOnce(); // wait for at least one subscriber
 
-    int server_fd, newSocket;
     struct sockaddr_in serverAddr;
 
-    // We don't care what our IP address is but we are definitely listening on port 5000
+    // We don't care what our IP address is but we are definitely listening on port 5001
+    //    (this is because Docker registries happen to listen on 5000, and it's easy to remember)
+
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_addr.s_addr = INADDR_ANY;
     serverAddr.sin_port = htons(SERVER_PORT);
 
-    // We'll just transmit some chars to test
-    string hello = "bytes to transmit";
-
-    // Create the socket file descriptor
     if((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("socket failed");
+        ROS_ERROR("[wifi_receiver] Socket failed: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
     ROS_INFO("Got socket file descriptor");
 
+    int opt = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int)) < 0) {
+        ROS_WARN("Could not set server socket to reusable; you may have to wait after killing this node to restart it");
+    }
+
     if(bind(server_fd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
-        perror("bind failed");
-        ROS_WARN("Bind failed.");
+        ROS_ERROR("[wifi_receiver] Bind failed: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    ROS_INFO("Bound socket to port 5000");
+    ROS_INFO("[wifi_receiver] Bound socket to port %d", SERVER_PORT);
 
     if(listen(server_fd, 3) < 0) {
-        perror("listen");
-        ROS_WARN("Listen failed.");
+        ROS_ERROR("[wifi_receiver] Listen failed: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
-    ROS_INFO("Listening on port 5000");
+    ROS_INFO("[wifi_receiver] Listening on port %d", SERVER_PORT);
 
     size_t addrSize = sizeof(serverAddr);
 
-    int currentClient = 0;
+    // If wifi_receiver is killed the socket persists until its timeout, which is really irritating because it takes a few
+    //   minutes before you can run the node again
+    //   So we have to catch SIGINT for that.
 
-    size_t nRead;
-    newSocket = 0;
+    struct sigaction sa;
+
+    sa.sa_handler = handleInterrupt;
+    sa.sa_flags = 0; // or SA_RESTART
+    sigemptyset(&sa.sa_mask);
+
+    if (sigaction(SIGINT, &sa, nullptr) == -1) {
+        ROS_ERROR("[wifi_receiver] sigaction: %s", strerror(errno));
+        exit(1);
+    }
+
+    client = 0;
 
     while(ros::ok()) {
-        if(newSocket == 0) {
+        if(client == 0) {
             // Look for a pending client
-            if((newSocket = accept(server_fd, (struct sockaddr *) &serverAddr,
+            if((client = accept(server_fd, (struct sockaddr *) &serverAddr,
                                    (socklen_t *) &addrSize)) < 0) {
-                ROS_WARN("Could not accept a client");
-            } else {
-                ROS_INFO("Received a client; processing traffic");
-            }
+                ROS_ERROR("[wifi_receiver] Could not accept a client.");
+            } else ROS_INFO("[wifi_receiver] Received a client; processing traffic.");
         } else {
-            processTraffic(newSocket, &pub);
-
-            // use the poll system call to be notified about socket status changes
-            struct pollfd pfd;
-            char buffer[1024] = {0};
-            pfd.fd = newSocket;
-            pfd.events = POLLIN | POLLHUP | POLLRDNORM;
-            pfd.revents = 0;
-            while (pfd.revents == 0 && ros::ok()) {
-                // call poll with a timeout of 100 ms
-                if (poll(&pfd, 1, 100) > 0) {
-                    // if result > 0, this means that there is either data, or socket is closed
-                    if (recv(newSocket, buffer, sizeof(buffer), MSG_PEEK | MSG_DONTWAIT) == 0) {
-                        close(newSocket);
-                        newSocket = 0;
-                    }
-                }
-            }
+            processTraffic(client, &pub, "~");
+            pollSocket(&client);
+            ros::spinOnce();
         }
     }
 }
 
-void processTraffic(int sock, ros::Publisher * pub) {
 
-    size_t nRead;
-    char buffer[2049] = {0};
-
-    if((nRead = read(sock, buffer, 2049)) > 0) {
-        cout << "Incoming transmission...\n";
-        transmit_wifi::Transmission msg;
-        cout << "> Gathering bytes...\n";
-        vector<signed char> bytes = vector<signed char>(buffer, buffer + nRead);
-        cout << "> Making message...\n";
-        msg.data = bytes;
-        msg.length = nRead;
-        cout << "> Publishing message...\n";
-        pub->publish(msg);
-        cout << "> Transmission fully received\n";
-    }
-}

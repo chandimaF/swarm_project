@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>apply_swarm_patch</name>
+  <name>swarmpatch</name>
   <version>0.0.0</version>
   <description>The apply_swarm_patch package</description>
 
@@ -50,9 +50,10 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>transmit_wifi</build_depend>
+  <build_depend>message_generation</build_depend>
   <exec_depend>transmit_wifi</exec_depend>
-  <build_depend>swarm_utilities</build_depend>
-  <exec_depend>swarm_utilities</exec_depend>
+  <build_depend>swarm_cmd</build_depend>
+  <exec_depend>swarm_cmd</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

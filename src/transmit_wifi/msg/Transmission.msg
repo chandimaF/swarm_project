@@ -1,4 +1,6 @@
 # Transmission.msg
 
-int16 length
-int8[] data
+string connection
+uint32 length
+uint8[] data
+bool response # default is zero (false), as for all message types
