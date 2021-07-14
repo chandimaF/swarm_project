@@ -5,11 +5,10 @@
 #include "FullPatchReceiver.h"
 #include <pstream.cpp>
 #include <string>
-#include <iostream>
 #include <boost/filesystem.hpp>
 #include "PatchUtil.h"
 #include <json.cpp>
-#include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -31,7 +30,7 @@ void updateLayerCache(string project) {
     system(("tar -xf "+ path + "/" +project+".tar -C " + path + "/" +"all").c_str());
 
     nlohmann::json j; // i hope that whoever nlohmann is, they're having a wonderful day
-    ifstream file(swarmDir+"/packs/"+project+"/all/manifest.json", fstream::in);
+    ifstream file(swarmDir+"/packs/"+project+"/all/manifest.json");
     file >> j;
     vector<string> layers = j[0]["Layers"];
     file.close();
