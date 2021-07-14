@@ -1,0 +1,14 @@
+//
+// Created by miles on 7/12/21.
+//
+
+#ifndef SWARM_PROJECT_FULLPATCHTRANSMITTER_H
+#define SWARM_PROJECT_FULLPATCHTRANSMITTER_H
+
+
+class FullPatchTransmitter {
+
+};
+
+
+#endif //SWARM_PROJECT_FULLPATCHTRANSMITTER_H
