@@ -16,20 +16,23 @@ using namespace std;
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "full_patch_transmitter");
     ros::NodeHandle nh;
+
+    // Step 1: connect to localhost (should really be there by default)
     transmit_wifi::Connection msg;
     msg.name = "local";
     msg.port = 5001;
     msg.ip = "127.0.0.1";
     ros::Publisher pub = nh.advertise<transmit_wifi::Connection>("connect", 1000);
     while(pub.getNumSubscribers() == 0) ros::spinOnce(); // wait for subscribers to be ready
-
     pub.publish(msg);
 
-    auto * t = new FullPatchTransmitter("127.0.0.1:5000/alpine", 1);
-    t->setTarget("local");
-    t->inform();
-//    t->awaitDone();
-    ros::spin();
+    for(int i = 512; i < 17000; i *= 2) {
+        auto * t = new FullPatchTransmitter("127.0.0.1:5000/sizeteste_" + to_string(i), 1);
+        t->setTarget("local");
+        t->inform();
+        t->awaitDone();
+    }
+
 }
 
 
@@ -66,6 +69,7 @@ long startTime;
 bool FullPatchTransmitter::awaitDone() const {
     startTime = millitime();
     while(targetStatus == TARGET_PULLING || millitime() > startTime + TIMEOUT) ros::spinOnce();
+    ROS_ERROR("[full_patch_transmitter] Full patch complete; took %lu milliseconds", millitime() - startTime);
     return targetStatus == TARGET_OK;
 }
 

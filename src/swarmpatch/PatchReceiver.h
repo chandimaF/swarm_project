@@ -17,7 +17,6 @@ using namespace std;
 class PatchReceiver {
 public:
     ros::Subscriber * sub;
-    string swarmDir;
     const string project;
     int version;
 
@@ -27,7 +26,6 @@ public:
     void unpack();
     void build();
     void apply();
-    void checkPaths();
     void onIncomingChunk(const boost::shared_ptr<const transmit_wifi::Transmission_<allocator<void>>> &msg);
 };
 

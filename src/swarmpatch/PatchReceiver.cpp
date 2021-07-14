@@ -52,26 +52,14 @@ string getVersionSHA256(string & layerPath) {
 }
 
 PatchReceiver::PatchReceiver(string p, int v, ros::Subscriber * s): project(std::move(p)), version(v), sub(s) {
-    char * envSwarmDir = getenv("SWARM_DIR");
-    if(envSwarmDir == nullptr) this->swarmDir = DEFAULT_SWARM_DIR;
-    else this->swarmDir = string(envSwarmDir);
 
-    checkPaths();
+    checkPaths(project);
+    string swarmDir = getSwarmDir();
     boost::filesystem::remove_all(swarmDir + "/outbound/" + project + "/");
     boost::filesystem::remove_all(swarmDir + "/incoming/" + project + "/");
     boost::filesystem::remove_all(swarmDir + "/images/" + project + "/");
 
     ROS_INFO("[patch_receiver] Preparing to receive project %s v%d in %s", project.c_str(), version, swarmDir.c_str());
-}
-
-void PatchReceiver::checkPaths() {
-    boost::filesystem::create_directory(swarmDir);
-    boost::filesystem::create_directory(swarmDir + "/incoming");
-    boost::filesystem::create_directory(swarmDir + "/images");
-    boost::filesystem::create_directory(swarmDir + "/outbound");
-    boost::filesystem::create_directory(swarmDir + "/incoming/" + project);
-    boost::filesystem::create_directory(swarmDir + "/images/" + project);
-    boost::filesystem::create_directory(swarmDir + "/outbound/" + project);
 }
 
 long totalBytes = 0;
@@ -96,7 +84,9 @@ void PatchReceiver::dumpBytes(unsigned char *bytes, int len) {
 
     if(lastMessageReceived == 0) cout << "First message received at " << to_string(millitime()) << "\n";
 
-    checkPaths();
+    checkPaths(project);
+
+    string swarmDir = getSwarmDir();
     string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
     ofstream file;
     file.open(archivePath, fstream::out | fstream::app | fstream::binary);
@@ -117,7 +107,9 @@ void PatchReceiver::unpack() {
     // Technically the tree of how Docker layers rely on each other is more complicated than this, but here I assume
     //    it's basically linear.
 
-    checkPaths();
+    checkPaths(project);
+
+    string swarmDir = getSwarmDir();
     string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
     string layerPath = swarmDir + "/images/" + project + "/" + to_string(version) + ".tar";
 
@@ -156,7 +148,9 @@ void PatchReceiver::build() {
     //    anyway (to get linked list structure right), so we may as well just transmit layer.tar.
 
     // 0: clean up the directory we'll work in
-    checkPaths();
+    checkPaths(project);
+
+    string swarmDir = getSwarmDir();
     boost::filesystem::remove_all(swarmDir + "/outbound/" + project + "/"); // clean off from the last time we built this image
     boost::filesystem::create_directory(swarmDir + "/outbound/" + project);
 
@@ -219,8 +213,9 @@ void PatchReceiver::build() {
 
 void PatchReceiver::apply() {
     cout << "Applying project " + project + " v" + to_string(version) << "\n";
+    string swarmDir = getSwarmDir();
 
-    // we do assume that we have Docker, plus the tar utility.
+    // we do assume that we have Docker, plus the tar utility. (Also gzip, elsewhere.)
     //    Docker obviously we can't manage without (and clearly should be on any system receiving a patch).
     //    The presence of tar kind of assumes a UNIX (?) machine I guess, but I don't know if there's anything
     //    I can do about that. Tar is a pain to work with programmatically
