@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include "PatchUtil.h"
 #include <json.cpp>
+#include <iostream>
 
 using namespace std;
 
