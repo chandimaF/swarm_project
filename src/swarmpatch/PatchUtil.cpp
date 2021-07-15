@@ -5,6 +5,7 @@
 #include <ros/time.h>
 #include <boost/filesystem.hpp>
 #include <sha256.h>
+#include <fstream>
 
 #define DEFAULT_SWARM_DIR "/home/miles/swarmpatch"
 
