@@ -11,6 +11,7 @@
 #include <utility>
 #include "PatchUtil.h"
 #include <swarm_cmd/SwarmCommand.h>
+#include <transmit_wifi/Connection.h>
 #include <sys/stat.h>
 
 using namespace std;
@@ -19,8 +20,17 @@ using json = nlohmann::json;
 int main(int argc, char ** argv) {
 
     ros::init(argc, argv, "patch_transmitter");
+    ros::NodeHandle nh;
 
-    auto * pt = new PatchTransmitter("loopback", "alpine", 2);
+    ros::Publisher p = nh.advertise<swarm_cmd::SwarmCommand>("connect", 1000);
+    while(p.getNumSubscribers() == 0) ros::spinOnce();
+    transmit_wifi::Connection c;
+    c.name = "odroid";
+    c.port = 5001;
+    c.ip = "10.42.0.190";
+    p.publish(c);
+
+    auto * pt = new PatchTransmitter("odroid", "alpine", 1);
 
     pt->pack();
     pt->transmit();

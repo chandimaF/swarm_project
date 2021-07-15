@@ -21,7 +21,7 @@ long lastMessageReceived = 0;
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "patch_receiver");
 
-    auto * p = new PatchReceiver("definitely_not_alpine", 2);
+    auto * p = new PatchReceiver("definitely_not_alpine", 1);
 
     // await messages until the first one is received, then wait until a timeout for more
     while ((lastMessageReceived == 0 || millitime() < lastMessageReceived + TIMEOUT) && ros::ok()) {
