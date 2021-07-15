@@ -1,5 +1,5 @@
 
-for i in 0 1 256 512 1024 2048 4096 8192 16384
+for i in 1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 131072 262144 524288 1048576 2097152 4194304 8388608 16777216
 do
   export SIZETEST_SIZE=$i
   export SIZETEST_NAME='sizeteste_'$SIZETEST_SIZE
@@ -14,7 +14,7 @@ do
   docker push localhost:5000/$SIZETEST_NAME
 
   # Create and push the new version to the registry
-  docker exec $SIZETEST_NAME sh -c "head -c ${SIZETEST_SIZE} /bin/busybox > test.txt"
+  docker exec $SIZETEST_NAME sh -c "head -c ${SIZETEST_SIZE} /dev/urandom > test.txt"
   docker commit $SIZETEST_NAME localhost:5000/$SIZETEST_NAME
   docker push localhost:5000/$SIZETEST_NAME
 

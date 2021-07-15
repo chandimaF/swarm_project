@@ -1,0 +1,6 @@
+<launch>
+    <env name="SWARM_DIR" value="/home/miles/swarmpatch" />
+    <node name="wifi_receiver" pkg="transmit_wifi" type="wifi_receiver" ns="agent" output="screen"/>
+    <node name="apply_swarm_patch" pkg="swarmpatch" type="apply_swarm_patch" ns="agent" output="screen"/>
+    <node name="command_swarm" pkg="swarm_cmd" type="command_swarm" ns="agent" output="screen"/>
+</launch>

@@ -7,8 +7,8 @@
 
 #include <string>
 #include <boost/shared_ptr.hpp>
-#include <transmit_wifi/Transmission.h>
 #include <ros/ros.h>
+#include <swarm_cmd/SwarmCommand.h>
 
 #define DEFAULT_SWARM_DIR "/home/miles/swarmpatch"
 
@@ -16,17 +16,16 @@ using namespace std;
 
 class PatchReceiver {
 public:
-    ros::Subscriber * sub;
-    const string project;
+
+    ros::Subscriber cmdIn;
+    string project;
     int version;
 
-
-    PatchReceiver(string project, int version, ros::Subscriber * sub);
-    void dumpBytes(unsigned char *bytes, int len);
-    void unpack();
-    void build();
-    void apply();
-    void onIncomingChunk(const boost::shared_ptr<const transmit_wifi::Transmission_<allocator<void>>> &msg);
+    PatchReceiver(string project, int version);
+    void unpack() const;
+    void build() const;
+    void apply() const;
+    void onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & cmd) const;
 };
 
 

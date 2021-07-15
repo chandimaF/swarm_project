@@ -1,5 +1,0 @@
-<launch>
-    <env name="SWARM_DIR" value="/home/odroid/swarmpatch" />
-    <node name="wifi_receiver" pkg="transmit_wifi" type="wifi_receiver" />
-    <node name="patch_receiver" pkg="apply_swarm_patch" type="apply_swarm_patch" />
-</launch>

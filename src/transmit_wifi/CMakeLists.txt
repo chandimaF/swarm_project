@@ -51,17 +51,8 @@ add_executable(wifi_transmitter
         WifiUtil.cpp
         )
 
-add_executable(wifi_loopback
-        WifiLoopback.cpp
-        WifiUtil.h
-        WifiUtil.cpp
-        )
-
-add_dependencies(wifi_loopback ${catkin_EXPORTED_TARGETS})
 add_dependencies(wifi_receiver ${catkin_EXPORTED_TARGETS})
 add_dependencies(wifi_transmitter ${catkin_EXPORTED_TARGETS})
 
-
 target_link_libraries(wifi_receiver ${catkin_LIBRARIES})
 target_link_libraries(wifi_transmitter ${catkin_LIBRARIES})
-target_link_libraries(wifi_loopback ${catkin_LIBRARIES})

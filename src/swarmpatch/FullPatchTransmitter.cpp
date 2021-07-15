@@ -17,18 +17,8 @@ int main(int argc, char ** argv) {
     ros::init(argc, argv, "full_patch_transmitter");
     ros::NodeHandle nh;
 
-    // Step 1: connect to localhost (should really be there by default)
-    transmit_wifi::Connection msg;
-    msg.name = "local";
-    msg.port = 5001;
-    msg.ip = "127.0.0.1";
-    ros::Publisher pub = nh.advertise<transmit_wifi::Connection>("connect", 1000);
-    while(pub.getNumSubscribers() == 0) ros::spinOnce(); // wait for subscribers to be ready
-    pub.publish(msg);
-
-    for(int i = 512; i < 17000; i *= 2) {
-        auto * t = new FullPatchTransmitter("127.0.0.1:5000/sizeteste_" + to_string(i), 1);
-        t->setTarget("local");
+    for(int i = 1; i < 16777217; i *= 2) {
+        auto * t = new FullPatchTransmitter("loopback", "10.42.0.1:5000/sizeteste_" + to_string(i), 1);
         t->inform();
         t->awaitDone();
     }
@@ -36,7 +26,8 @@ int main(int argc, char ** argv) {
 }
 
 
-FullPatchTransmitter::FullPatchTransmitter(string p, int v): project(std::move(p)), version(v) {
+FullPatchTransmitter::FullPatchTransmitter(string t, string p, int v): target(std::move(t)), project(std::move(p)), version(v) {
+    ROS_INFO("[full_patch_transmitter] Aiming new transmitter: %s v%d -> %s", p.c_str(), v, t.c_str());
     ros::NodeHandle nh;
     this->commandOut = nh.advertise<swarm_cmd::SwarmCommand>("command_out", 1000);
     // This is never used, but as far as I can tell it gets garbage'd or something otherwise?
@@ -44,12 +35,10 @@ FullPatchTransmitter::FullPatchTransmitter(string p, int v): project(std::move(p
     while(commandOut.getNumSubscribers() == 0) ros::spinOnce(); // wait for subscribers to be ready
 }
 
-void FullPatchTransmitter::setImage(string p, int v) {
+void FullPatchTransmitter::aim(string t, string p, int v) {
+    ROS_INFO("[full_patch_transmitter] Re-aiming transmitter: %s v%d -> %s", p.c_str(), v, t.c_str());
     this->project = std::move(p);
     this->version = v;
-}
-
-void FullPatchTransmitter::setTarget(string t) {
     this->target = std::move(t);
 }
 
@@ -69,15 +58,14 @@ long startTime;
 bool FullPatchTransmitter::awaitDone() const {
     startTime = millitime();
     while(targetStatus == TARGET_PULLING || millitime() > startTime + TIMEOUT) ros::spinOnce();
-    ROS_ERROR("[full_patch_transmitter] Full patch complete; took %lu milliseconds", millitime() - startTime);
+    ROS_ERROR("[full_patch_transmitter] Full patch of %s complete; took %lu milliseconds", this->project.c_str(), millitime() - startTime);
     return targetStatus == TARGET_OK;
 }
 
 void FullPatchTransmitter::onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPtr & msg) {
-    ROS_INFO("[full_patch_transmitter] Status update from target!");
+    ROS_INFO("[full_patch_transmitter] Status update from target %s", msg->agent.c_str());
     if(msg->type != 2) return;
     string response = string((char *) msg->data.data()+1, msg->data_length);
-
 
     // Very annoyingly, docker pull gives zero exit status no matter what.
     // So I went to all the work to transmit it and it's not even useful. :/
@@ -87,12 +75,12 @@ void FullPatchTransmitter::onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPt
     } else targetStatus = 1;
 
     if(targetStatus != 0) {
-        ROS_WARN("[full_patch_transmitter] Response as follows:");
-        ROS_WARN("%s", response.c_str());
-        ROS_WARN("(exited with code %d)", targetStatus);
+        ROS_INFO("[full_patch_transmitter] Response as follows:\n");
+        ROS_ERROR("%s", response.c_str());
+        ROS_ERROR("\n[full_patch_transmitter] (Target failed to install latest version)");
     } else {
-        ROS_INFO("[full_patch_transmitter] Response as follows:");
+        ROS_INFO("[full_patch_transmitter] Response as follows:\n");
         ROS_INFO("%s", response.c_str());
-        ROS_INFO("(exited with code %d)", targetStatus);
+        ROS_INFO("\n[full_patch_transmitter] (Target successfully installed latest version)");
     }
 }

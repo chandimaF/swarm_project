@@ -11,12 +11,15 @@ using namespace std;
 
 class PatchTransmitter {
 
-    ros::Publisher * pub;
-    const string project;
+    ros::Publisher pub;
+    string target;
+    string project;
     int version;
 
 public:
-    PatchTransmitter(string project, int version, ros::Publisher * output);
+    PatchTransmitter(string target, string project, int version);
+
+    void aim(string target, string project, int version);
     void pack();
     void transmit();
 };

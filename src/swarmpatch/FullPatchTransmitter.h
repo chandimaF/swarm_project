@@ -17,18 +17,18 @@ using namespace std;
 
 class FullPatchTransmitter {
 
-    string project;
-    int version;
-    string target;
     ros::Publisher commandOut;
     ros::Subscriber commandIn;
+    string target;
+    string project;
+    int version;
+
     int targetStatus = 0;
 
 public:
-    FullPatchTransmitter(string project, int version);
-    void setImage(string project, int version);
-    void setTarget(string target);
+    FullPatchTransmitter(string target, string project, int version);
 
+    void aim(string target, string project, int version);
     void inform();
     bool awaitDone() const;
     void onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPtr &msg);

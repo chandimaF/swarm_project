@@ -8,5 +8,6 @@
 long millitime();
 void checkPaths(std::string project);
 std::string getSwarmDir();
+std::string getVersionSHA256(std::string & layerPath);
 
 #endif //SWARM_PROJECT_PATCHUTIL_H

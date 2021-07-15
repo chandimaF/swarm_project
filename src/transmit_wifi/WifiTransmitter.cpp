@@ -79,6 +79,13 @@ int main(int argc, char **argv)
     ros::Subscriber sub2 = nodeHandle.subscribe("connect", 10, onConnectionRequested);
     ros::Publisher responsePub = nodeHandle.advertise<transmit_wifi::Transmission>("wifi_in", 0);
 
+    // automatically connect locally
+    auto * local = new transmit_wifi::Connection();
+    local->name = "loopback";
+    local->port = 5001;
+    local->ip = "127.0.0.1";
+    onConnectionRequested(boost::shared_ptr<transmit_wifi::Connection>(local));
+
     ROS_INFO("[wifi_transmitter] Awaiting connections and traffic");
 
     while(ros::ok()) {

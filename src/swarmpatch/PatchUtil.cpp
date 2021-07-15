@@ -4,6 +4,7 @@
 
 #include <ros/time.h>
 #include <boost/filesystem.hpp>
+#include <sha256.h>
 
 #define DEFAULT_SWARM_DIR "/home/miles/swarmpatch"
 
@@ -33,4 +34,17 @@ void checkPaths(string project) {
     boost::filesystem::create_directory(swarmDir + "/incoming/" + project);
     boost::filesystem::create_directory(swarmDir + "/images/" + project);
     boost::filesystem::create_directory(swarmDir + "/outbound/" + project);
+}
+
+string getVersionSHA256(string & layerPath) {
+    SHA256 sha;
+    char buffer[256];
+
+    fstream layerFile(layerPath, fstream::in | fstream::binary);
+    while(! layerFile.eof()) {
+        layerFile.read(buffer, 256);
+        sha.add(buffer, layerFile.gcount());
+    }
+    layerFile.close();
+    return sha.getHash();
 }

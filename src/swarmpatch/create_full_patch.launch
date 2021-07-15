@@ -1,6 +1,0 @@
-<launch>
-    <env name="SWARM_DIR" value="/home/miles/swarmpatch" />
-    <node name="wifi_transmitter" pkg="transmit_wifi" type="wifi_transmitter" ns="ground" output="screen"/>
-    <node name="command_swarm" pkg="swarm_cmd" type="command_swarm" ns="ground" output="screen"/>
-    <node name="create_full_swarm_patch" pkg="swarmpatch" type="create_full_swarm_patch" ns="ground" output="screen"/>
-</launch>

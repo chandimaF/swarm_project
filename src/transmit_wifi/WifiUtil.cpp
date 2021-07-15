@@ -40,13 +40,24 @@ void processTraffic(int sock, ros::Publisher * pub, string name) {
     if(! socketStatus(sock)) return;
 
     size_t nRead;
-    unsigned char buffer[2049] = {0};
+    unsigned char buffer[9] = {0};
 
-    if((nRead = read(sock, buffer, 2049)) > 0) {
-        ROS_INFO("[wifi_util] Incoming transmission of size %lu", nRead);
+    if((nRead = read(sock, buffer, 9)) == 9) {
+        long dataLength = (buffer[5] << 24) + (buffer[6] << 16) + (buffer[7] << 8) + (buffer[8]);
+        ROS_INFO("[wifi_util] Received a command header; size is %lu", dataLength);
+
+        auto * data = new unsigned char[dataLength + 9];
+        nRead = 0;
+        while(nRead < dataLength) {
+            nRead += read(sock, data + 9 + nRead, dataLength);
+            ROS_WARN("[wifi_util] Didn't get the expected number of bytes; got %lu", nRead);
+        }
+
+        memcpy(data, buffer, 9);
+
         transmit_wifi::Transmission msg;
         ROS_DEBUG("[wifi_util]   Gathering bytes");
-        auto bytes = vector<unsigned char>(buffer, buffer + nRead);
+        auto bytes = vector<unsigned char>(data, data + dataLength + 9);
         ROS_DEBUG("[wifi_util]   Making message");
         msg.data = bytes;
         msg.length = nRead;
@@ -54,6 +65,7 @@ void processTraffic(int sock, ros::Publisher * pub, string name) {
         ROS_DEBUG("[wifi_util]   Publishing message");
         pub->publish(msg);
         ROS_DEBUG("[wifi_util]   Transmission fully received");
+        delete[] data;
     }
 }
 
