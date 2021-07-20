@@ -58,26 +58,27 @@ std::string exec(const char* cmd, unsigned char * status) {
 }
 
 void FullPatchReceiver::onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & msg) {
-    if(msg->type != 1) return; // we only care about patch requests
-    ROS_INFO("[full_patch_receivers] Received a patch command from '%s' ('~' is ground)", msg->agent.c_str());
+    if(msg->type == 1) { // we only care about patch requests
+        ROS_INFO("[full_patch_receivers] Received a patch command from '%s' ('~' is ground)", msg->agent.c_str());
 
-    std::string image(msg->data.begin(), msg->data.end());
-    unsigned char status = 0;
-    std::string error = exec(("docker pull " + image).c_str(), &status);
+        std::string image(msg->data.begin(), msg->data.end());
+        unsigned char status = 0;
+        std::string error = exec(("docker pull " + image).c_str(), &status);
 //    updateLayerCache(image);
 
-    swarm_cmd::SwarmCommand cmd;
-    auto * data = new unsigned char[error.length() + 1];
-    const char * cError = error.c_str();
-    memcpy(data+1, cError, error.length());
-    data[0] = status;
+        swarm_cmd::SwarmCommand cmd;
+        auto *data = new unsigned char[error.length() + 1];
+        const char *cError = error.c_str();
+        memcpy(data + 1, cError, error.length());
+        data[0] = status;
 
-    cmd.data = std::vector<unsigned char>(data, data+error.length());
-    cmd.type = 2;
-    cmd.data_length = error.length();
-    cmd.order = 0;
-    cmd.agent = msg->agent;
-    cmdPub.publish(cmd);
+        cmd.data = std::vector<unsigned char>(data, data + error.length());
+        cmd.type = 2;
+        cmd.data_length = error.length();
+        cmd.order = 0;
+        cmd.agent = msg->agent;
+        cmdPub.publish(cmd);
+    }
 }
 
 FullPatchReceiver::FullPatchReceiver() {

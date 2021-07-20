@@ -22,30 +22,33 @@ int main(int argc, char ** argv) {
     ros::init(argc, argv, "patch_transmitter");
     ros::NodeHandle nh;
 
-    ros::Publisher p = nh.advertise<transmit_wifi::Connection>("connect", 1000);
-    while(p.getNumSubscribers() == 0) ros::spinOnce();
-    transmit_wifi::Connection c;
-    c.name = "odroid";
-    c.port = 5001;
-    c.ip = "10.42.0.190";
-    p.publish(c);
+//    ros::Publisher p = nh.advertise<transmit_wifi::Connection>("connect", 1000);
+//    while(p.getNumSubscribers() == 0) ros::spinOnce();
+//    transmit_wifi::Connection c;
+//    c.name = "odroid";
+//    c.port = 5001;
+//    c.ip = "10.42.0.190";
+//    p.publish(c);
 
 
-    auto * pt = new PatchTransmitter("odroid", "patchtest", 1);
+    auto * pt = new PatchTransmitter("ground_out", "sizeteste_256", 2);
+    pt->pack();
+    pt->transmit();
+    pt->awaitDone();
 
-    for(int i = 1; i < 16777217; i *= 2) {
-        pt->aim("odroid", "patchtest_" + to_string(i), 1);
-        pt->pack();
-        pt->transmit();
-        pt->awaitDone();
-        pt->aim("odroid", "patchtest_" + to_string(i), 2);
-        long t = millitime();
-        ROS_ERROR("Test #%d started at %lu", i, t);
-        pt->pack();
-        pt->transmit();
-        pt->awaitDone();
-        ROS_ERROR("Test #%d finished in %lu ms", i, millitime() - t);
-    }
+//    for(int i = 1; i < 16777217; i *= 2) {
+//        pt->aim("odroid", "sizeteste_" + to_string(i), 1);
+//        pt->pack();
+//        pt->transmit();
+//        pt->awaitDone();
+//        pt->aim("odroid", "sizeteste_" + to_string(i), 2);
+//        long t = millitime();
+//        ROS_ERROR("Test #%d started at %lu", i, t);
+//        pt->pack();
+//        pt->transmit();
+//        pt->awaitDone();
+//        ROS_ERROR("Test #%d finished in %lu ms", i, millitime() - t);
+//    }
 }
 
 PatchTransmitter::PatchTransmitter(string t, string p, int v): target(t), project(p), version(v) {
@@ -53,13 +56,24 @@ PatchTransmitter::PatchTransmitter(string t, string p, int v): target(t), projec
     this->commandOut = nh.advertise<swarm_cmd::SwarmCommand>("command_out", 1000, true);
     this->commandIn = nh.subscribe("command_in", 100, &PatchTransmitter::onStatusUpdate, this);
     ROS_INFO("[patch_transmitter] Initialized transmitter for %s v%d -> %s ", p.c_str(), v, t.c_str());
+    aim(t, p, v);
 }
 
 void PatchTransmitter::aim(string t, string p, int v){
-    ROS_INFO("[patch_transmitter] Re-aiming transmitter: %s v%d -> %s", p.c_str(), v, t.c_str());
+    ROS_INFO("[patch_transmitter] Aiming transmitter: %s v%d -> %s", p.c_str(), v, t.c_str());
     target = std::move(t);
     project = std::move(p);
     version = v;
+
+    // aim the receiver too
+    swarm_cmd::SwarmCommand cmd;
+    auto * data = (unsigned char *) project.c_str();
+    cmd.type = 5;
+    cmd.data = vector<unsigned char>(data, data+project.length());
+    cmd.order = version;
+    cmd.data_length = project.length();
+    cmd.agent = target;
+    commandOut.publish(cmd);
 }
 
 void PatchTransmitter::pack() {
@@ -71,11 +85,6 @@ void PatchTransmitter::pack() {
 
     string path = swarmDir+"/packs/"+project;
     chdir(path.c_str());
-
-//    system(("echo \"FROM localhost:5000/"+project+"\" > Dockerfile").c_str());
-//    system(("docker buildx build --load -t "+project+"_compiled --platform linux/arm/v7 .").c_str());
-
-
 
     // Take the example "myproject" v<#>. This is what these commands will do:
     // "docker save myproject:latest > myproject.tar": Dump a tar archive of ALL layers to packs/myproject/myproject.tar

@@ -1,0 +1,7 @@
+[
+  {
+    "name": "ground_xbee",
+    "baud_rate": 9600,
+    "device": "/dev/ttyUSB0"
+  }
+]

@@ -14,8 +14,6 @@ using namespace transmit_wifi;
 
 #define SERVER_PORT 5001
 
-unordered_map<string, int> connections;
-
 int server_fd, client;
 void handleInterrupt(int sig){
     ROS_WARN("[wifi_receiver] Closing open sockets");

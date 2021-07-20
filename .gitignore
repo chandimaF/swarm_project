@@ -3,3 +3,4 @@ cmake-build-debug/*
 devel/
 build/
 **/cmake-build-debug/
+venv/

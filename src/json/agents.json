@@ -1,0 +1,12 @@
+[
+  {
+    "name": "odroid_agent",
+    "id": 1,
+    "connection": "odroid"
+  },
+  {
+    "name": "agent_2",
+    "id": 2,
+    "connection": "ground_xbee"
+  }
+]

@@ -50,14 +50,6 @@ PatchReceiver::PatchReceiver(string p, int v): project(std::move(p)), version(v)
 void PatchReceiver::onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & cmd) {
     if(cmd->type == 3) {
         string swarmDir = getSwarmDir();
-
-        // a hack for 6/16 test
-        version = (int) cmd->order;
-        if(version == 1) {
-            boost::filesystem::remove_all(swarmDir + "/outbound/" + project + "/");
-            boost::filesystem::remove_all(swarmDir + "/incoming/" + project + "/");
-            boost::filesystem::remove_all(swarmDir + "/images/" + project + "/");
-        }
         checkPaths(project);
 
         string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
@@ -69,6 +61,10 @@ void PatchReceiver::onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & 
         file.close();
 
         lastMessageReceived = millitime();
+    } else if(cmd->type == 5) {
+        this->project = "sp_" + string((char *) cmd->data.data(), cmd->data_length);
+        this->version = cmd->order; // this is sort of a hack but i guess it sort of makes sense
+        ROS_INFO("[patch_receiver] Aiming self at %s v%d", project.c_str(), version);
     }
 }
 void PatchReceiver::unpack() const {

@@ -9,7 +9,7 @@
 using namespace swarm_cmd;
 using namespace std;
 
-ros::Publisher wifiOutPub;
+ros::Publisher outPub;
 ros::Publisher commandInPub;
 
 void onCommandRequested(const SwarmCommand::ConstPtr & cmd) {
@@ -39,7 +39,7 @@ void onCommandRequested(const SwarmCommand::ConstPtr & cmd) {
     ROS_INFO("[command_swarm] Commanding agent '%s' (code %d): #%d, %d bytes of data",
              cmd->agent.c_str(), cmd->type, cmd->order, cmd->data_length);
 
-    wifiOutPub.publish(out);
+    outPub.publish(out);
 }
 
 void onCommandReceived(const transmit_wifi::Transmission & msg) {
@@ -68,14 +68,17 @@ int main(int argc, char ** argv) {
     ROS_INFO("[command_swarm] Node initialized");
     ros::NodeHandle nh;
 
-    wifiOutPub = nh.advertise<transmit_wifi::Transmission>("wifi_out", 1000);
+    outPub = nh.advertise<transmit_wifi::Transmission>("radio_out", 1000);
     commandInPub = nh.advertise<SwarmCommand>("command_in", 1000);
 
-    if(wifiOutPub.getNumSubscribers() == 0) ROS_WARN("[command_swarm] Nobody is listening to /wifi_out; waiting...");
-    while(wifiOutPub.getNumSubscribers() == 0) ros::spinOnce();
+    if(outPub.getNumSubscribers() == 0) {
+        ROS_WARN("[command_swarm] Nobody is listening to outgoing transmissions; waiting...");
+    }
+    while(outPub.getNumSubscribers() == 0) ros::spinOnce();
 
     ROS_INFO("[command_swarm] Awaiting commands");
     ros::Subscriber wifiIn = nh.subscribe("wifi_in", 1000, onCommandReceived);
+    ros::Subscriber radioIn = nh.subscribe("radio_in", 1000, onCommandReceived);
     ros::Subscriber commandsOut = nh.subscribe("command_out", 1000, onCommandRequested);
 
     ros::spin();
