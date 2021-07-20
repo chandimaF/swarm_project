@@ -6,6 +6,7 @@
 #include <wx/button.h>
 #include <wx/choice.h>
 #include <ros/ros.h>
+#include <wx/checkbox.h>
 
 #ifndef SWARM_PROJECT_SWARMUIDEPLOYMENT_H
 #define SWARM_PROJECT_SWARMUIDEPLOYMENT_H
@@ -14,8 +15,10 @@ class SwarmUIDeployment: public wxPanel {
 public:
 
     wxString* imagesAvailable = {};
+    wxString* agentsAvailable = {};
     wxChoice* imageChoice;
     wxButton* installButton;
+    wxCheckBox *checkFullPatch;
 
     int nImages = 0;
 
@@ -33,6 +36,9 @@ public:
 
     std::string getSelectedImage() const;
 
+    wxChoice *agentChoice;
+
+    void loadAgents();
 };
 
 

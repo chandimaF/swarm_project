@@ -6,15 +6,22 @@
 #define SWARM_PROJECT_PATCHTRANSMITTER_H
 
 #include <ros/ros.h>
+#include <swarm_cmd/SwarmCommand.h>
+
+#define TARGET_PULLING -1
+#define TARGET_OK 0
+#define TIMEOUT 5000
 
 using namespace std;
 
 class PatchTransmitter {
 
-    ros::Publisher pub;
+    ros::Publisher commandOut;
+    ros::Subscriber commandIn;
     string target;
     string project;
     int version;
+    int targetStatus = 0;
 
 public:
     PatchTransmitter(string target, string project, int version);
@@ -22,6 +29,8 @@ public:
     void aim(string target, string project, int version);
     void pack();
     void transmit();
+    bool awaitDone() const;
+    void onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPtr &msg);
 };
 
 

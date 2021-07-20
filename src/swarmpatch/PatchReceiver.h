@@ -16,7 +16,7 @@ using namespace std;
 
 class PatchReceiver {
 public:
-
+    ros::Publisher cmdOut;
     ros::Subscriber cmdIn;
     string project;
     int version;
@@ -25,7 +25,9 @@ public:
     void unpack() const;
     void build() const;
     void apply() const;
-    void onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & cmd) const;
+    void onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & cmd);
+
+
 };
 
 

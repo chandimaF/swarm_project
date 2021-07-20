@@ -12,12 +12,16 @@
 //(*AppHeaders
 #include "SwarmUIMain.h"
 #include <wx/image.h>
+#include <ros/ros.h>
 //*)
 
 IMPLEMENT_APP(SwarmUIApp);
 
 bool SwarmUIApp::OnInit()
 {
+    int argc = 0; char * argv[] = {};
+    ros::init(argc, argv, "swarm_gui");
+
     wxInitAllImageHandlers();
 
     auto* Frame = new SwarmUIFrame(nullptr);

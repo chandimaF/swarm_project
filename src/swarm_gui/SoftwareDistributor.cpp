@@ -54,3 +54,4 @@ long getImageSize(const string & imageName) {
     json j = json::parse(manifest);
     return j["layers"][j["layers"].size()-1]["size"].get<long>();
 }
+

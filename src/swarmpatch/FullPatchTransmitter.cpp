@@ -9,7 +9,7 @@
 #include <transmit_wifi/Connection.h>
 #include "PatchUtil.h"
 
-#define TIMEOUT 10000 // docker pull can take a while
+#define TIMEOUT 30000 // docker pull can take a while
 
 using namespace std;
 
@@ -17,8 +17,18 @@ int main(int argc, char ** argv) {
     ros::init(argc, argv, "full_patch_transmitter");
     ros::NodeHandle nh;
 
-    for(int i = 1; i < 16777217; i *= 2) {
-        auto * t = new FullPatchTransmitter("loopback", "10.42.0.1:5000/sizeteste_" + to_string(i), 1);
+    ros::Publisher p = nh.advertise<transmit_wifi::Connection>("connect", 1000);
+    while(p.getNumSubscribers() == 0) ros::spinOnce();
+    transmit_wifi::Connection c;
+    c.name = "odroid";
+    c.port = 5001;
+    c.ip = "10.42.0.190";
+    p.publish(c);
+
+    auto * t = new FullPatchTransmitter("odroid", "10.42.0.1:5000/sizeteste", 1);
+
+    for(long i = 1; i < 10000000l; i *= 2) {
+        t->aim("odroid", "10.42.0.1:5000/sizeteste_" + to_string(i), 1);
         t->inform();
         t->awaitDone();
     }
@@ -57,8 +67,8 @@ void FullPatchTransmitter::inform() {
 long startTime;
 bool FullPatchTransmitter::awaitDone() const {
     startTime = millitime();
-    while(targetStatus == TARGET_PULLING || millitime() > startTime + TIMEOUT) ros::spinOnce();
-    ROS_ERROR("[full_patch_transmitter] Full patch of %s complete; took %lu milliseconds", this->project.c_str(), millitime() - startTime);
+    while(targetStatus == TARGET_PULLING && millitime() < startTime + TIMEOUT) ros::spinOnce();
+    ROS_INFO("[full_patch_transmitter] Full patch of %s complete; took %lu milliseconds", this->project.c_str(), millitime() - startTime);
     return targetStatus == TARGET_OK;
 }
 

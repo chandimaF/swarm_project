@@ -64,7 +64,6 @@ add_dependencies(create_swarm_patch ${catkin_EXPORTED_TARGETS})
 add_dependencies(create_full_swarm_patch ${catkin_EXPORTED_TARGETS})
 add_dependencies(apply_full_swarm_patch ${catkin_EXPORTED_TARGETS})
 
-include_directories(${catkin_INCLUDE_DIRS})
 target_link_libraries(apply_swarm_patch ${catkin_LIBRARIES} ${Boost_INCLUDE_DIRS} Boost::filesystem Boost::iostreams sha256 nlohmann_json)
 target_link_libraries(create_swarm_patch ${catkin_LIBRARIES} ${Boost_INCLUDE_DIRS} Boost::filesystem Boost::iostreams sha256 nlohmann_json)
 target_link_libraries(create_full_swarm_patch ${catkin_LIBRARIES} ${Boost_INCLUDE_DIRS} Boost::filesystem Boost::iostreams sha256 nlohmann_json)

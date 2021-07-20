@@ -12,6 +12,7 @@
 #include <ros/ros.h>
 #include <sha256.h>
 
+
 // Timeout will be one second for now. In the future this should be wrapped by another layer that says when exactly to be done,
 // but that's not a priority here.
 #define TIMEOUT 1000
@@ -40,17 +41,25 @@ PatchReceiver::PatchReceiver(string p, int v): project(std::move(p)), version(v)
     ROS_INFO("[patch_receiver] Preparing to receive project %s v%d in %s", project.c_str(), version, swarmDir.c_str());
     ros::NodeHandle nh;
 //
-//    boost::filesystem::remove_all(swarmDir + "/outbound/" + project + "/");
-//    boost::filesystem::remove_all(swarmDir + "/incoming/" + project + "/");
-//    boost::filesystem::remove_all(swarmDir + "/images/" + project + "/");
 
+    this->cmdOut = nh.advertise<swarm_cmd::SwarmCommand>("command_out", 100);
+    while(cmdOut.getNumSubscribers() == 0) ros::spinOnce();
     cmdIn = nh.subscribe("command_in", 1000, &PatchReceiver::onIncomingCommand, this);
 }
 
-void PatchReceiver::onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & cmd) const {
+void PatchReceiver::onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & cmd) {
     if(cmd->type == 3) {
-        checkPaths(project);
         string swarmDir = getSwarmDir();
+
+        // a hack for 6/16 test
+        version = (int) cmd->order;
+        if(version == 1) {
+            boost::filesystem::remove_all(swarmDir + "/outbound/" + project + "/");
+            boost::filesystem::remove_all(swarmDir + "/incoming/" + project + "/");
+            boost::filesystem::remove_all(swarmDir + "/images/" + project + "/");
+        }
+        checkPaths(project);
+
         string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
         ROS_INFO("[patch_receiver] Incoming patch command of size %d", cmd->data_length);
 
@@ -182,4 +191,12 @@ void PatchReceiver::apply() const {
 
     system(("tar -cf "+project+".tar *").c_str());
     system(("docker load < "+project+".tar").c_str());
+
+    swarm_cmd::SwarmCommand cmd;
+    cmd.data = {0};
+    cmd.type = 2;
+    cmd.data_length = 1;
+    cmd.order = 0;
+    cmd.agent = "~"; // special case for a response to ground
+    cmdOut.publish(cmd);
 }

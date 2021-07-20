@@ -6,6 +6,8 @@
 #include "SoftwareDistributor.h"
 #include <wx/button.h>
 #include <wx/choice.h>
+#include <wx/checkbox.h>
+#include <wx/stattext.h>
 
 
 using namespace std;
@@ -20,25 +22,41 @@ SwarmUIDeployment::SwarmUIDeployment(wxWindow * parent,
             wxPanel(parent, id, pos, size, style, name) {
 
     this->loadImages();
+    this->loadAgents();
 
     this->SetBackgroundColour(wxColour(40, 190, 170));
 
+    new wxStaticText (this, wxID_ANY, _("Project: "), wxPoint(60, 60), wxSize(100, 40));
     this->imageChoice = new wxChoice(
             this,
             wxID_ANY,
-            wxPoint(40,48),
-            wxSize(150, 40),
+            wxPoint(120,50),
+            wxSize(200, 40),
             this->nImages,
-            this->imagesAvailable,
-            0, wxDefaultValidator, _T("ID_DEPLOY_BUTTON"));
+            this->imagesAvailable);
+
+    new wxStaticText (this, wxID_ANY, _("Agent: "), wxPoint(60, 110), wxSize(100, 40));
+    this->agentChoice = new wxChoice(
+            this,
+            wxID_ANY,
+            wxPoint(120,100),
+            wxSize(200, 40),
+            3,
+            this->agentsAvailable);
 
     this->installButton = new wxButton(
             this,
             wxID_ANY,
             _("Install"),
-            wxPoint(240,48),
-            wxSize(200, 40),
-            0, wxDefaultValidator, _T("ID_CHOOSE_IMAGE"));
+            wxPoint(60,150),
+            wxSize(200, 40));
+
+    this->checkFullPatch = new wxCheckBox(
+            this,
+            wxID_ANY,
+            _(""),
+            wxPoint(280, 160),
+            wxSize(20, 20));
 
     // Annoyingly we have to use lambdas to capture `this` in order to make this object oriented
     //   It's probably an anti-pattern but I'm so used to Java that it feels better than using a static function
@@ -50,6 +68,7 @@ SwarmUIDeployment::~SwarmUIDeployment(){
     delete[] this->imagesAvailable;
     delete this->imageChoice;
     delete this->installButton;
+    delete this->checkFullPatch;
 }
 
 void SwarmUIDeployment::loadImages() {
@@ -57,6 +76,13 @@ void SwarmUIDeployment::loadImages() {
     this->nImages = (int) images.size();
     this->imagesAvailable = new wxString[this->nImages]();
     for(int i = 0; i < this->nImages; i++) this->imagesAvailable[i] = wxString::FromAscii(images[i].c_str());
+}
+
+void SwarmUIDeployment::loadAgents() {
+    this->agentsAvailable = new wxString[3]();
+    this->agentsAvailable[0] = _("agent_1");
+    this->agentsAvailable[1] = _("agent_2");
+    this->agentsAvailable[2] = _("agent_3");
 }
 
 string SwarmUIDeployment::getSelectedImage() const {

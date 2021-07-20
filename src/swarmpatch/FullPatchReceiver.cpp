@@ -76,7 +76,7 @@ void FullPatchReceiver::onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPt
     cmd.type = 2;
     cmd.data_length = error.length();
     cmd.order = 0;
-    cmd.agent = msg->agent; // special case for a response to ground
+    cmd.agent = msg->agent;
     cmdPub.publish(cmd);
 }
 
