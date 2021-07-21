@@ -8,6 +8,7 @@
 #include <transmit_wifi/Transmission.h>
 #include <transmit_wifi/Connection.h>
 #include "PatchUtil.h"
+#include <swarmpatch/PatchRequest.h>
 
 #define TIMEOUT 30000 // docker pull can take a while
 
@@ -15,24 +16,17 @@ using namespace std;
 
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "full_patch_transmitter");
-    ros::NodeHandle nh;
-
-    ros::Publisher p = nh.advertise<transmit_wifi::Connection>("connect", 1000);
-    while(p.getNumSubscribers() == 0) ros::spinOnce();
-    transmit_wifi::Connection c;
-    c.name = "odroid";
-    c.port = 5001;
-    c.ip = "10.42.0.190";
-    p.publish(c);
+//    ros::NodeHandle nh;
 
     auto * t = new FullPatchTransmitter("odroid", "10.42.0.1:5000/sizeteste", 1);
 
-    for(long i = 1; i < 10000000l; i *= 2) {
-        t->aim("odroid", "10.42.0.1:5000/sizeteste_" + to_string(i), 1);
-        t->inform();
-        t->awaitDone();
-    }
+//    for(long i = 1; i < 10000000l; i *= 2) {
+//        t->aim("odroid", "10.42.0.1:5000/sizeteste_" + to_string(i), 1);
+//        t->inform();
+//        t->awaitDone();
+//    }
 
+    ros::spin();
 }
 
 
@@ -42,6 +36,7 @@ FullPatchTransmitter::FullPatchTransmitter(string t, string p, int v): target(st
     this->commandOut = nh.advertise<swarm_cmd::SwarmCommand>("command_out", 1000);
     // This is never used, but as far as I can tell it gets garbage'd or something otherwise?
     this->commandIn = nh.subscribe("command_in", 100, &FullPatchTransmitter::onStatusUpdate, this);
+    this->requestIn = nh.subscribe("patch_requests", 100, &FullPatchTransmitter::onPatchRequest, this);
     while(commandOut.getNumSubscribers() == 0) ros::spinOnce(); // wait for subscribers to be ready
 }
 
@@ -93,4 +88,11 @@ void FullPatchTransmitter::onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPt
         ROS_INFO("%s", response.c_str());
         ROS_INFO("\n[full_patch_transmitter] (Target successfully installed latest version)");
     }
+}
+
+void FullPatchTransmitter::onPatchRequest(const swarmpatch::PatchRequest &msg) {
+    if(! msg.full) return;
+    aim(msg.target, msg.project, msg.version);
+    inform();
+    awaitDone();
 }

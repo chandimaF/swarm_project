@@ -1,0 +1,15 @@
+<launch>
+    <env name="SWARM_DIR" value="/home/miles/swarmpatch" />
+
+    <param name="agent/agents_json" value="/home/miles/Work/UNL_REU/swarm_project/src/json/agents_agent.json" />
+    <param name="agent/wifi_json" value="/home/miles/Work/UNL_REU/swarm_project/src/json/wifi_agent.json" />
+    <param name="agent/radio_json" value="/home/miles/Work/UNL_REU/swarm_project/src/json/radio_agent.json" />
+
+<!--    <node name="wifi_receiver" pkg="transmit_wifi" type="wifi_receiver" ns="agent" output="screen"/>-->
+    <node name="radio_transceiver" pkg="transmit_radio" type="transceiver.py" ns="agent" output="screen"/>
+
+    <node name="command_swarm" pkg="swarm_cmd" type="command_swarm" ns="agent" output="screen"/>
+
+    <node name="apply_full_swarm_patch" pkg="swarmpatch" type="apply_full_swarm_patch" ns="agent" output="screen"/>
+    <node name="apply_swarm_patch" pkg="swarmpatch" type="apply_swarm_patch" ns="agent" output="screen"/>
+</launch>

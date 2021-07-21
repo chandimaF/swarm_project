@@ -5,14 +5,24 @@
 #include <ros/ros.h>
 #include <swarm_cmd/SwarmCommand.h>
 #include <transmit_wifi/Transmission.h>
+#include <json.cpp>
+#include <fstream>
 
 using namespace swarm_cmd;
 using namespace std;
+using json = nlohmann::json;
 
-ros::Publisher outPub;
+ros::Publisher radioPub;
+ros::Publisher wifiPub;
 ros::Publisher commandInPub;
+json agents;
 
 void onCommandRequested(const SwarmCommand::ConstPtr & cmd) {
+
+    if(agents[cmd->agent].is_null()){
+        ROS_ERROR("[command_swarm] Command failed: no agent registered as %s", cmd->agent.c_str());
+        return;
+    }
 
     unsigned int nBytes = cmd->data_length + 4 + 4 + 1;
     auto * transmission = new unsigned char[nBytes];
@@ -32,14 +42,16 @@ void onCommandRequested(const SwarmCommand::ConstPtr & cmd) {
     memcpy(transmission+9, cmd->data.data(), cmd->data_length);
 
     transmit_wifi::Transmission out;
-    out.connection = cmd->agent;
-    out.data = vector<unsigned char>(transmission, transmission+nBytes);
+
+    out.connection = agents[cmd->agent]["connection"];
+    out.data = vector<unsigned char>(transmission, transmission + nBytes);
     out.length = nBytes;
 
     ROS_INFO("[command_swarm] Commanding agent '%s' (code %d): #%d, %d bytes of data",
              cmd->agent.c_str(), cmd->type, cmd->order, cmd->data_length);
 
-    outPub.publish(out);
+    radioPub.publish(out);
+    wifiPub.publish(out);
 }
 
 void onCommandReceived(const transmit_wifi::Transmission & msg) {
@@ -68,13 +80,21 @@ int main(int argc, char ** argv) {
     ROS_INFO("[command_swarm] Node initialized");
     ros::NodeHandle nh;
 
-    outPub = nh.advertise<transmit_wifi::Transmission>("radio_out", 1000);
+    wifiPub = nh.advertise<transmit_wifi::Transmission>("wifi_out", 1000);
+    radioPub = nh.advertise<transmit_wifi::Transmission>("radio_out", 1000);
     commandInPub = nh.advertise<SwarmCommand>("command_in", 1000);
 
-    if(outPub.getNumSubscribers() == 0) {
+    string filename;
+    ros::param::get("agents_json", filename);
+    ifstream file(filename, fstream::in);
+    file >> agents;
+    file.close();
+
+
+    if(radioPub.getNumSubscribers() == 0 || wifiPub.getNumSubscribers() == 0 ) {
         ROS_WARN("[command_swarm] Nobody is listening to outgoing transmissions; waiting...");
     }
-    while(outPub.getNumSubscribers() == 0) ros::spinOnce();
+    while(radioPub.getNumSubscribers() == 0) ros::spinOnce();
 
     ROS_INFO("[command_swarm] Awaiting commands");
     ros::Subscriber wifiIn = nh.subscribe("wifi_in", 1000, onCommandReceived);

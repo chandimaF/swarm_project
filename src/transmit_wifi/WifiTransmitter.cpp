@@ -3,11 +3,13 @@
 #include <unistd.h>
 #include <ros/ros.h>
 #include <transmit_wifi/Transmission.h>
-#include <transmit_wifi/Connection.h>
 #include <unordered_map>
 #include "WifiUtil.h"
+#include <json.cpp>
+#include <fstream>
 
 using namespace std;
+using json = nlohmann::json;
 
 //#define HOST "10.42.0.190"
 //#define HOST "127.0.0.1"
@@ -16,12 +18,12 @@ using namespace std;
 
 unordered_map<string, int> connections;
 
-void onConnectionRequested(const transmit_wifi::Connection::ConstPtr & msg) {
-    ROS_INFO("[wifi_transmitter] Connecting to '%s' (%s:%d)", msg->name.c_str(), msg->ip.c_str(), msg->port);
+void connect(string name, string ip, int port) {
+    ROS_INFO("[wifi_transmitter] Connecting to '%s' (%s:%d)", name.c_str(), ip.c_str(), port);
 
-    if(connections.count(msg->name) != 0) {
-        ROS_WARN("[wifi_transmitter] Connection '%s' already exists", msg->name.c_str());
-        close(connections[msg->name]);
+    if(connections.count(name) != 0) {
+        ROS_WARN("[wifi_transmitter] Connection '%s' already exists", name.c_str());
+        close(connections[name]);
     }
 
     int sock;
@@ -41,15 +43,15 @@ void onConnectionRequested(const transmit_wifi::Connection::ConstPtr & msg) {
     // Note how we don't bind() here - we don't really care what the transmitter (outgoing) port is.
     // We do care what the server port is, because it'll be listening on 5000.
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(msg->port);
+    serverAddr.sin_port = htons(port);
 
     // Convert IPv4 and IPv6 addresses from text to binary form
-    if(inet_pton(AF_INET, msg->ip.c_str(), &serverAddr.sin_addr) <= 0) {
+    if(inet_pton(AF_INET, ip.c_str(), &serverAddr.sin_addr) <= 0) {
         ROS_ERROR("[wifi_transmitter]   Invalid address.");
         return;
     }
 
-    ROS_INFO("[wifi_transmitter] Attempting connection to %s:%d", msg->ip.c_str(), msg->port);
+    ROS_INFO("[wifi_transmitter] Attempting connection to %s:%d", ip.c_str(), port);
 
     // Connect socket to server!
     if (connect(sock, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
@@ -58,7 +60,7 @@ void onConnectionRequested(const transmit_wifi::Connection::ConstPtr & msg) {
     }
 
     ROS_INFO("[wifi_transmitter] Socket connected to server");
-    connections[msg.get()->name] = sock;
+    connections[name] = sock;
 }
 
 void onTransmitRequested(const transmit_wifi::Transmission::ConstPtr & msg) {
@@ -75,15 +77,16 @@ int main(int argc, char **argv) {
 
     // We want to transmit out of that socket into /wifi_out as needed.
     ros::Subscriber sub1 = nodeHandle.subscribe("wifi_out", 10000, onTransmitRequested);
-    ros::Subscriber sub2 = nodeHandle.subscribe("connect", 10, onConnectionRequested);
     ros::Publisher responsePub = nodeHandle.advertise<transmit_wifi::Transmission>("wifi_in", 0);
 
-    // automatically connect locally
-    auto * local = new transmit_wifi::Connection();
-    local->name = "loopback";
-    local->port = 5001;
-    local->ip = "127.0.0.1";
-    onConnectionRequested(boost::shared_ptr<transmit_wifi::Connection>(local));
+
+    json j;
+    string filename;
+    ros::param::get("wifi_json", filename);
+    ifstream file(filename, fstream::in);
+    file >> j;
+    file.close();
+    for (auto & c : j) connect(c["name"], c["ip"], c["port"]);
 
     ROS_INFO("[wifi_transmitter] Awaiting connections and traffic");
 

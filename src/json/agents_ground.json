@@ -1,0 +1,7 @@
+{
+"odroid_agent": {
+    "name": "Odroid Agent",
+    "id": 1,
+    "connection": "xbee"
+  }
+}

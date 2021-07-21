@@ -12,10 +12,11 @@ find_package(catkin REQUIRED COMPONENTS
         std_msgs
         message_generation
         )
-
+find_package(nlohmann_json)
 
 include_directories(
         ../../devel/include # Hack for Clion.
+        ../../lib
         ${catkin_INCLUDE_DIRS}
 )
 
@@ -51,8 +52,8 @@ add_executable(wifi_transmitter
         WifiUtil.cpp
         )
 
-add_dependencies(wifi_receiver ${catkin_EXPORTED_TARGETS})
-add_dependencies(wifi_transmitter ${catkin_EXPORTED_TARGETS})
+add_dependencies(wifi_receiver ${catkin_EXPORTED_TARGETS} nlohmann_json)
+add_dependencies(wifi_transmitter ${catkin_EXPORTED_TARGETS} nlohmann_json)
 
-target_link_libraries(wifi_receiver ${catkin_LIBRARIES})
-target_link_libraries(wifi_transmitter ${catkin_LIBRARIES})
+target_link_libraries(wifi_receiver ${catkin_LIBRARIES} nlohmann_json)
+target_link_libraries(wifi_transmitter ${catkin_LIBRARIES} nlohmann_json)

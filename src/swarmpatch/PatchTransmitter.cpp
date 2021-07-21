@@ -11,50 +11,22 @@
 #include <utility>
 #include "PatchUtil.h"
 #include <swarm_cmd/SwarmCommand.h>
-#include <transmit_wifi/Connection.h>
 #include <sys/stat.h>
 
 using namespace std;
 using json = nlohmann::json;
 
 int main(int argc, char ** argv) {
-
     ros::init(argc, argv, "patch_transmitter");
-    ros::NodeHandle nh;
-
-//    ros::Publisher p = nh.advertise<transmit_wifi::Connection>("connect", 1000);
-//    while(p.getNumSubscribers() == 0) ros::spinOnce();
-//    transmit_wifi::Connection c;
-//    c.name = "odroid";
-//    c.port = 5001;
-//    c.ip = "10.42.0.190";
-//    p.publish(c);
-
-
-    auto * pt = new PatchTransmitter("ground_out", "sizeteste_256", 2);
-    pt->pack();
-    pt->transmit();
-    pt->awaitDone();
-
-//    for(int i = 1; i < 16777217; i *= 2) {
-//        pt->aim("odroid", "sizeteste_" + to_string(i), 1);
-//        pt->pack();
-//        pt->transmit();
-//        pt->awaitDone();
-//        pt->aim("odroid", "sizeteste_" + to_string(i), 2);
-//        long t = millitime();
-//        ROS_ERROR("Test #%d started at %lu", i, t);
-//        pt->pack();
-//        pt->transmit();
-//        pt->awaitDone();
-//        ROS_ERROR("Test #%d finished in %lu ms", i, millitime() - t);
-//    }
+    auto * pt = new PatchTransmitter("odroid_agent", "sizeteste_256", 2);
+    ros::spin();
 }
 
 PatchTransmitter::PatchTransmitter(string t, string p, int v): target(t), project(p), version(v) {
     ros::NodeHandle nh;
     this->commandOut = nh.advertise<swarm_cmd::SwarmCommand>("command_out", 1000, true);
     this->commandIn = nh.subscribe("command_in", 100, &PatchTransmitter::onStatusUpdate, this);
+    this->requestIn = nh.subscribe("patch_requests", 100, &PatchTransmitter::onPatchRequest, this);
     ROS_INFO("[patch_transmitter] Initialized transmitter for %s v%d -> %s ", p.c_str(), v, t.c_str());
     aim(t, p, v);
 }
@@ -81,7 +53,7 @@ void PatchTransmitter::pack() {
 
     checkPaths(project);
     string swarmDir = getSwarmDir();
-    ROS_INFO("patch_transmitter] Packing project %s v%d", project.c_str(), version);
+    ROS_INFO("[patch_transmitter] Packing project %s v%d", project.c_str(), version);
 
     string path = swarmDir+"/packs/"+project;
     chdir(path.c_str());
@@ -105,6 +77,14 @@ void PatchTransmitter::pack() {
     ifstream file(swarmDir+"/packs/"+project+"/"+to_string(version)+"/manifest.json", fstream::in);
     file >> j;
     file.close();
+    cout << "\n\n------\n" << j << "------\n\n";
+    if(j[0].is_null())
+        ROS_ERROR("[patch_transmitter] Could not get a Docker manifest for %s", project.c_str());
+    if(j[0]["Layers"].is_null())
+        ROS_ERROR("[patch_transmitter] Malformed Docker manifest for project %s", project.c_str());
+    if(j[0]["Layers"][version-1].is_null())
+        ROS_ERROR("[patch_transmitter] Project %s does not have version v%d)", project.c_str(), version);
+
     string layer = j[0]["Layers"][version - 1];
 
     // After picking the layer name from the layers list, zip it and move it to packs/myproject/<#>.tar.gz.
@@ -173,4 +153,12 @@ void PatchTransmitter::onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPtr & 
         ROS_INFO("%s", response.c_str());
         ROS_INFO("\n[patch_transmitter] (Target successfully installed latest version)");
     }
+}
+
+void PatchTransmitter::onPatchRequest(const swarmpatch::PatchRequest &msg) {
+    if(msg.full) return;
+    aim(msg.target, msg.project, msg.version);
+    pack();
+    transmit();
+    awaitDone();
 }

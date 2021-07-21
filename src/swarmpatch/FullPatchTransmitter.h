@@ -8,6 +8,7 @@
 #include <string>
 #include <ros/ros.h>
 #include <swarm_cmd/SwarmCommand.h>
+#include <swarmpatch/PatchRequest.h>
 
 
 #define TARGET_PULLING -1
@@ -19,10 +20,10 @@ class FullPatchTransmitter {
 
     ros::Publisher commandOut;
     ros::Subscriber commandIn;
+    ros::Subscriber requestIn;
     string target;
     string project;
     int version;
-
     int targetStatus = 0;
 
 public:
@@ -32,6 +33,7 @@ public:
     void inform();
     bool awaitDone() const;
     void onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPtr &msg);
+    void onPatchRequest(const swarmpatch::PatchRequest_<allocator<void>> &msg);
 };
 
 

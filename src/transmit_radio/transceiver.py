@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+import time
 
 import rospy
 import serial
 import json
+import time
 from transmit_wifi.msg import Transmission
 
 connections = {}
@@ -18,7 +20,7 @@ def on_transmit_requested(data):
 def transmit():
     rospy.init_node('transceive_radio')
 
-    with open("../json/radio.json") as file:
+    with open(rospy.get_param("radio_json")) as file:
         j = json.load(file)
         for c in j:
             rospy.loginfo("[transceive_radio] Connecting to '%s' with serial %s (baudrate: %d)", c['name'], c['device'], c['baud_rate'])
@@ -38,7 +40,7 @@ def transmit():
     rospy.Subscriber("radio_out", Transmission, on_transmit_requested)
     pub = rospy.Publisher('radio_in', Transmission, queue_size=10)
 
-    rate = rospy.rate(10000)
+    rate = rospy.Rate(10000)
 
     while not rospy.is_shutdown():
         for (name, ser) in connections.items():
@@ -49,12 +51,17 @@ def transmit():
 
                 data = bytes([])
                 nRead = 0
+                last_rec = time.time()
                 while nRead < data_length:
                     if ser.inWaiting():
                         chunk = ser.read(ser.inWaiting())
                         data += chunk
                         nRead += len(chunk)
-                        rospy.loginfo("[transceive_radio] Read %d bytes worth of data so far", nRead)
+                        rospy.loginfo("[transceive_radio] Read %d of %d bytes worth of data so far", nRead, data_length)
+                        last_rec = time.time()
+                    if time.time() > last_rec + 30:
+                        rospy.logwarn("[transcieve_radio] Radio transmission timed out while waiting for remaining %d bytes", data_length-nRead)
+
 
                 t = Transmission(data=header+data, length=len(header+data), connection=name)
                 pub.publish(t)

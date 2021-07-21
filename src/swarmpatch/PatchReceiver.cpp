@@ -24,15 +24,19 @@ int main(int argc, char ** argv) {
 
     auto * p = new PatchReceiver("definitely_not_alpine", 1);
 
-    // await messages until the first one is received, then wait until a timeout for more
-    while ((lastMessageReceived == 0 || millitime() < lastMessageReceived + TIMEOUT) && ros::ok()) {
-        ros::spinOnce();
-    }
-    if(lastMessageReceived == 0) ROS_INFO("[patch_receiver] Final message received at %ld", lastMessageReceived);
+    while(ros::ok()) {
+        lastMessageReceived = 0;
 
-    p->unpack();
-    p->build();
-    p->apply();
+        // await messages until the first one is received, then wait until a timeout for more
+        while ((lastMessageReceived == 0 || millitime() < lastMessageReceived + TIMEOUT) && ros::ok()) {
+            ros::spinOnce();
+        }
+        if(lastMessageReceived == 0) ROS_INFO("[patch_receiver] Final message received at %ld", lastMessageReceived);
+
+        p->unpack();
+        p->build();
+        p->apply();
+    }
 }
 
 PatchReceiver::PatchReceiver(string p, int v): project(std::move(p)), version(v) {
