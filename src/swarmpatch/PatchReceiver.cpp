@@ -122,8 +122,10 @@ void PatchReceiver::build() const {
     string layersList = "[";
     string shaList = "[";
 
+    ROS_INFO("[patch_receiver]   Getting version-specific info...", project.c_str(), version);
     // For every version... (they are 1-indexed)
     for(int i = 1; i <= version; i++) {
+        ROS_INFO("[patch_receiver]     ... for v%d",  i);
         // We really just need to know layer names (which are programmatic) and SHA256 hashes, into a JSON list.
         // Get layer name:
         layersList += "\"" + to_string(i) + "/layer.tar" + ((i == version)? "\"]" : "\",");
@@ -159,6 +161,8 @@ void PatchReceiver::build() const {
         src.close();
         dest.close();
     }
+
+    ROS_INFO("[patch_receiver]   Writing general Docker files...");
 
     // 2: dump into manifest.json
     string manifestJSON = R"([{"Config":"config.json","RepoTags":[")"+project+R"(:latest"],"Layers":)" + layersList + "}]";

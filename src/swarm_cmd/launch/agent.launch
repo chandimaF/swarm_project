@@ -1,5 +1,5 @@
 <launch>
-    <env name="SWARM_DIR" value="/home/miles/swarmpatch" />
+    <env name="SWARM_DIR" value="/home/odroid/swarmpatch" />
 
     <param name="agent/agents_json" value="/home/miles/Work/UNL_REU/swarm_project/src/json/agents_agent.json" />
     <param name="agent/wifi_json" value="/home/miles/Work/UNL_REU/swarm_project/src/json/wifi_agent.json" />
