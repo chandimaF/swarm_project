@@ -10,6 +10,6 @@
 
     <node name="command_swarm" pkg="swarm_cmd" type="command_swarm" ns="ground" output="screen"/>
 
-    <node name="create_full_swarm_patch" pkg="swarmpatch" type="create_full_swarm_patch" ns="ground" output="screen"/>
+<!--    <node name="create_full_swarm_patch" pkg="swarmpatch" type="create_full_swarm_patch" ns="ground" output="screen"/>-->
     <node name="create_swarm_patch" pkg="swarmpatch" type="create_swarm_patch" ns="ground" output="screen"/>
 </launch>

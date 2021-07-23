@@ -9,7 +9,7 @@
 #include <swarm_cmd/SwarmCommand.h>
 #include <swarmpatch/PatchRequest.h>
 
-#define TARGET_PULLING -1
+#define TARGET_PENDING -1
 #define TARGET_OK 0
 #define TIMEOUT 5000
 
@@ -31,7 +31,7 @@ public:
     void aim(string target, string project, int version);
     void pack();
     void transmit();
-    bool awaitDone() const;
+    bool awaitDone();
     void onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPtr &msg);
     void onPatchRequest(const swarmpatch::PatchRequest &msg);
 

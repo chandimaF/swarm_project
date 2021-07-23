@@ -16,10 +16,32 @@
 using namespace std;
 using json = nlohmann::json;
 
+swarm_cmd::SwarmCommand * chunks;
+
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "patch_transmitter");
     auto * pt = new PatchTransmitter("odroid_agent", "sizeteste_256", 2);
-    ros::spin();
+    ros::NodeHandle nh;
+    ros::Publisher patches = nh.advertise<swarmpatch::PatchRequest>("patch_requests", 100);
+    while(patches.getNumSubscribers() == 0) ros::spinOnce();
+
+    for(int i = 2048*2*2*2; i < 2048*2*2*2+1; i*=2) { //536870911
+        ROS_INFO("========================================");
+        ROS_INFO("STARTING TRIAL %d", i);
+        ROS_INFO("========================================");
+        pt->aim("odroid_agent", "sizeteste_" + to_string(i), 2);
+
+        pt->pack();
+        pt->transmit();
+        ROS_INFO("========================================");
+        ROS_INFO("FINISHED TRIAL %d", i);
+        ROS_INFO("========================================");
+
+        ros::Duration(5).sleep();
+
+    }
+
+//    ros::spin();
 }
 
 PatchTransmitter::PatchTransmitter(string t, string p, int v): target(t), project(p), version(v) {
@@ -28,7 +50,6 @@ PatchTransmitter::PatchTransmitter(string t, string p, int v): target(t), projec
     this->commandIn = nh.subscribe("command_in", 100, &PatchTransmitter::onStatusUpdate, this);
     this->requestIn = nh.subscribe("patch_requests", 100, &PatchTransmitter::onPatchRequest, this);
     ROS_INFO("[patch_transmitter] Initialized transmitter for %s v%d -> %s ", p.c_str(), v, t.c_str());
-    aim(t, p, v);
 }
 
 void PatchTransmitter::aim(string t, string p, int v){
@@ -45,7 +66,9 @@ void PatchTransmitter::aim(string t, string p, int v){
     cmd.order = version;
     cmd.data_length = project.length();
     cmd.agent = target;
+    targetStatus = TARGET_PENDING;
     commandOut.publish(cmd);
+    awaitDone();
 }
 
 void PatchTransmitter::pack() {
@@ -77,7 +100,7 @@ void PatchTransmitter::pack() {
     ifstream file(swarmDir+"/packs/"+project+"/"+to_string(version)+"/manifest.json", fstream::in);
     file >> j;
     file.close();
-    cout << "\n\n------\n" << j << "------\n\n";
+
     if(j[0].is_null())
         ROS_ERROR("[patch_transmitter] Could not get a Docker manifest for %s", project.c_str());
     if(j[0]["Layers"].is_null())
@@ -119,39 +142,85 @@ void PatchTransmitter::transmit() {
     ROS_INFO("[patch_transmitter] Patch appears to have size %lu", nBytes);
     file.read(buffer, nBytes);
 
-    swarm_cmd::SwarmCommand cmd;
-    cmd.type = 3;
-    cmd.data_length = nBytes;
-    cmd.agent = target;
-    cmd.order = version;
-    cmd.data = vector<unsigned char>(buffer, buffer+nBytes);
-    commandOut.publish(cmd);
-    targetStatus = TARGET_PULLING;
+    long nChunks = nBytes / 119 + 1;
+
+    swarm_cmd::SwarmCommand header;
+    header.type = 7;
+    header.data_length = 0;
+    header.agent = target;
+    header.order = nChunks;
+    targetStatus = TARGET_PENDING;
+    commandOut.publish(header);
+
+    awaitDone();
+
+    chunks = new swarm_cmd::SwarmCommand[nChunks];
+
+    targetStatus = TARGET_PENDING;
+    for(int i = 0; i < nChunks; i++) {
+        ros::spinOnce(); // this should make the code below reachable, right?
+        chunks[i].type = 3;
+        chunks[i].data_length = (i == nChunks-1)? nBytes%119:119;
+        chunks[i].agent = target;
+        chunks[i].order = i;
+        chunks[i].data = vector<unsigned char>(buffer + i*119, buffer + i*119 + chunks[i].data_length);
+        commandOut.publish(chunks[i]);
+        if(! awaitDone()) {
+            ROS_WARN("Didn't get ACK'd on chunk %d; trying again", i);
+            i--;
+        }
+    }
+
+    ros::Duration(1).sleep();
+    swarm_cmd::SwarmCommand done;
+    done.type = 9;
+    done.data_length = 1;
+    done.agent = target;
+    done.order = 0;
+    done.data = {1};
+    commandOut.publish(done);
+
+    awaitDone();
 }
 
 long startTime;
-bool PatchTransmitter::awaitDone() const {
+int nAcks = 0;
+bool PatchTransmitter::awaitDone() {
+    ROS_INFO("[patch_transmitter] Awaiting ACK from receiver");
     startTime = millitime();
-    while(targetStatus == TARGET_PULLING || millitime() > startTime + TIMEOUT) ros::spinOnce();
-    ROS_ERROR("[patch_transmitter] Patch of %s complete; took %lu milliseconds", this->project.c_str(), millitime() - startTime);
-    return targetStatus == TARGET_OK;
+    while(targetStatus < TARGET_OK && ros::ok() && millitime() < startTime + 1000) ros::spinOnce();
+    if(! ros::ok()) exit(0);
+    nAcks++;
+    ROS_INFO("[patch_transmitter] Got %dth ACK from receiver", nAcks);
+
+    int result = targetStatus == TARGET_OK;
+    targetStatus = TARGET_PENDING;
+    if(millitime() > startTime + 1000) return false;
+    return result;
 }
 
 void PatchTransmitter::onStatusUpdate(const swarm_cmd::SwarmCommand::ConstPtr & msg) {
-    ROS_INFO("[full_patch_transmitter] Status update from target %s", msg->agent.c_str());
-    if(msg->type != 2) return;
-    string response = string((char *) msg->data.data()+1, msg->data_length);
+    if(msg->type == 2) { // ACK
+        ROS_INFO("[patch_transmitter] Status update from target %s", msg->agent.c_str());
+        string response = string((char *) msg->data.data() + 1, msg->data_length - 1);
 
-    targetStatus = msg->data[0];
+        targetStatus = msg->data[0];
+        ROS_INFO("[patch_transmitter] Got ACK (code %d); response as follows:\n", msg->data[0]);
+        ROS_INFO("%s\n", response.c_str());
 
-    if(targetStatus != 0) {
-        ROS_INFO("[patch_transmitter] Response as follows:\n");
-        ROS_ERROR("%s", response.c_str());
-        ROS_ERROR("\n[patch_transmitter] (Target failed to install latest version)");
-    } else {
-        ROS_INFO("[full_patch_transmitter] Response as follows:\n");
-        ROS_INFO("%s", response.c_str());
-        ROS_INFO("\n[patch_transmitter] (Target successfully installed latest version)");
+//        targetStatus = TARGET_OK;
+    } else if(msg->type == 6) { // Retransmit request
+        ROS_INFO("[patch_transmitter] RETRANSMIT request for %d", msg->order);
+        commandOut.publish(chunks[msg->order]);
+
+        ros::Duration(1).sleep();
+        swarm_cmd::SwarmCommand done;
+        done.type = 9;
+        done.data_length = 1;
+        done.agent = target;
+        done.order = 0;
+        done.data = {1};
+        commandOut.publish(done);
     }
 }
 
@@ -160,5 +229,4 @@ void PatchTransmitter::onPatchRequest(const swarmpatch::PatchRequest &msg) {
     aim(msg.target, msg.project, msg.version);
     pack();
     transmit();
-    awaitDone();
 }

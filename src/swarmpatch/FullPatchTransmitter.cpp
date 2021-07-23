@@ -56,13 +56,13 @@ void FullPatchTransmitter::inform() {
     cmd.type = 0b1u;
     cmd.order = version;
     commandOut.publish(cmd);
-    targetStatus = TARGET_PULLING;
+    targetStatus = TARGET_PENDING;
 }
 
 long startTime;
 bool FullPatchTransmitter::awaitDone() const {
     startTime = millitime();
-    while(targetStatus == TARGET_PULLING && millitime() < startTime + TIMEOUT) ros::spinOnce();
+    while(targetStatus == TARGET_PENDING && millitime() < startTime + TIMEOUT) ros::spinOnce();
     ROS_INFO("[full_patch_transmitter] Full patch of %s complete; took %lu milliseconds", this->project.c_str(), millitime() - startTime);
     return targetStatus == TARGET_OK;
 }

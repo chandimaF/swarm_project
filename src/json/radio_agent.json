@@ -1,7 +1,7 @@
 [
   {
     "name": "~",
-    "baud_rate": 9600,
+    "baud_rate": 115200,
     "device": "/dev/ttyUSB1"
   }
 ]

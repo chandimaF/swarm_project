@@ -11,7 +11,7 @@
 #include <swarmpatch/PatchRequest.h>
 
 
-#define TARGET_PULLING -1
+#define TARGET_PENDING -1
 #define TARGET_OK 0
 
 using namespace std;

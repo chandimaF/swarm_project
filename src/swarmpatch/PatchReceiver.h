@@ -22,12 +22,12 @@ public:
     int version;
 
     PatchReceiver(string project, int version);
-    void unpack() const;
-    void build() const;
-    void apply() const;
+    void unpack();
+    void build();
+    void apply();
+    void ack(unsigned char data);
     void onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & cmd);
-
-
+    void requestRetransmit(long n);
 };
 
 

@@ -5,6 +5,7 @@ import rospy
 import serial
 import json
 import time
+import random
 from transmit_wifi.msg import Transmission
 
 connections = {}
@@ -40,8 +41,6 @@ def transmit():
     rospy.Subscriber("radio_out", Transmission, on_transmit_requested)
     pub = rospy.Publisher('radio_in', Transmission, queue_size=10)
 
-    rate = rospy.Rate(10000)
-
     while not rospy.is_shutdown():
         for (name, ser) in connections.items():
             if ser.inWaiting():
@@ -49,24 +48,32 @@ def transmit():
                 data_length = (header[5] << 24) + (header[6] << 16) + (header[7] << 8) + (header[8])
                 rospy.loginfo("[transceive_radio] Incoming data from '%s' of length %d", name, data_length)
 
+
                 data = bytes([])
                 nRead = 0
                 last_rec = time.time()
-                while nRead < data_length:
+                while nRead < data_length and not rospy.is_shutdown():
                     if ser.inWaiting():
-                        chunk = ser.read(ser.inWaiting())
+                        chunk = ser.read(min(ser.inWaiting(), data_length-nRead))
+
                         data += chunk
                         nRead += len(chunk)
                         rospy.loginfo("[transceive_radio] Read %d of %d bytes worth of data so far", nRead, data_length)
                         last_rec = time.time()
-                    if time.time() > last_rec + 30:
+                    if time.time() > last_rec + 0.5:
                         rospy.logwarn("[transcieve_radio] Radio transmission timed out while waiting for remaining %d bytes", data_length-nRead)
+                        break
 
-
+                rospy.loginfo("[transceive_radio] Total transmission size: %d bytes", len(header+data))
                 t = Transmission(data=header+data, length=len(header+data), connection=name)
-                pub.publish(t)
 
-        rate.sleep()
+                if random.random() < 0.00:
+                    rospy.loginfo("********** *********************** ***********")
+                    rospy.loginfo("********** SIMULATING DROPPED CHUNK **********")
+                    rospy.loginfo("********** *********************** ***********")
+                else:
+                    pub.publish(t)
+
 
     for (name, ser) in connections.items():
         ser.close()

@@ -16,8 +16,17 @@
 // Timeout will be one second for now. In the future this should be wrapped by another layer that says when exactly to be done,
 // but that's not a priority here.
 #define TIMEOUT 1000
+#define PENDING 1
+#define OK 0
+
 
 long lastMessageReceived = 0;
+long nExpected = 0;
+vector<unsigned char> * incoming;
+bool * received;
+int status = OK;
+int loc = 0;
+bool ready = false;
 
 int main(int argc, char ** argv) {
     ros::init(argc, argv, "patch_receiver");
@@ -28,14 +37,11 @@ int main(int argc, char ** argv) {
         lastMessageReceived = 0;
 
         // await messages until the first one is received, then wait until a timeout for more
-        while ((lastMessageReceived == 0 || millitime() < lastMessageReceived + TIMEOUT) && ros::ok()) {
+        status = PENDING;
+        while (status == PENDING && ros::ok()) {
             ros::spinOnce();
         }
         if(lastMessageReceived == 0) ROS_INFO("[patch_receiver] Final message received at %ld", lastMessageReceived);
-
-        p->unpack();
-        p->build();
-        p->apply();
     }
 }
 
@@ -52,26 +58,73 @@ PatchReceiver::PatchReceiver(string p, int v): project(std::move(p)), version(v)
 }
 
 void PatchReceiver::onIncomingCommand(const swarm_cmd::SwarmCommand::ConstPtr & cmd) {
+    if(! (ready || cmd->type == 5)) return; // if not ready, only accept aims
     if(cmd->type == 3) {
-        string swarmDir = getSwarmDir();
-        checkPaths(project);
-
-        string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
-        ROS_INFO("[patch_receiver] Incoming patch command of size %d", cmd->data_length);
-
-        ofstream file;
-        file.open(archivePath, fstream::out | fstream::app | fstream::binary);
-        file.write((const char *) cmd->data.data(), cmd->data_length);
-        file.close();
-
+        if(incoming == nullptr) return;
+        ROS_INFO("[patch_receiver] Incoming patch chunk #%d (expected: #%d/%d) of size %d", cmd->order, loc, nExpected, cmd->data_length);
+        if(received[cmd->order]) ROS_ERROR("[patch_receiver] Duplicate chunk %d", cmd->order);
+        if(cmd->order != loc) {
+            ROS_ERROR("[patch_receiver] Chunk out of order");
+            incoming[cmd->order] = cmd->data;
+            loc = cmd->order;
+        }
+        incoming[cmd->order] = cmd->data;
+        received[cmd->order] = true;
+        loc++;
         lastMessageReceived = millitime();
+        ack(0);
     } else if(cmd->type == 5) {
         this->project = "sp_" + string((char *) cmd->data.data(), cmd->data_length);
-        this->version = cmd->order; // this is sort of a hack but i guess it sort of makes sense
+        this->version = 1;
         ROS_INFO("[patch_receiver] Aiming self at %s v%d", project.c_str(), version);
+        checkPaths(project);
+        ready = true;
+        ack(0);
+    } else if(cmd->type == 7) {
+        ROS_INFO("[patch_receiver] Got header indicating %d chunks of data", cmd->order);
+        status = PENDING;
+        nExpected = cmd->order;
+        incoming = new vector<unsigned char>[nExpected];
+        received = new bool[nExpected];
+        for(int i = 0; i < nExpected; i++) received[i] = false;
+        loc = 0;
+        ack(0);
+    } else if(cmd->type == 9) {
+        ROS_INFO("[patch_receiver] Got footer indicating end of data (expected %d)", nExpected);
+        bool ok = true;
+        for(long i = 0; i < nExpected; i++) {
+            if(! received[i]) {
+                ROS_INFO("[patch_receiver] Requesting retransmission of chunk %ld", i);
+                requestRetransmit(i);
+                ok = false;
+            } else {
+                ROS_INFO("[patch_receiver] Got transmission of chunk %ld (%d bytes long)", i, incoming[i].size());
+            }
+        }
+        if(ok) {
+            ready = false;
+            ROS_INFO("[patch_receiver] Successfully got all data; dumping bytes");
+            string swarmDir = getSwarmDir();
+            checkPaths(project);
+            string archivePath = swarmDir + "/incoming/" + project + "/" + to_string(version) + ".tar.gz";
+            ofstream file;
+            file.open(archivePath, fstream::out | fstream::app | fstream::binary);
+            for(int i = 0; i < nExpected; i++) {
+                ROS_INFO("[patch_receiver]  ... chunk %d (%d)", i, incoming[i].size());
+                file.write((const char *) incoming[i].data(), incoming[i].size());
+            }
+            file.close();
+            delete[] incoming;
+            delete[] received;
+            status = OK;
+            ack(0);
+            unpack();
+            build();
+            apply();
+        }
     }
 }
-void PatchReceiver::unpack() const {
+void PatchReceiver::unpack() {
     // This takes an incoming .tar.gz file (made via dumpBytes() above), unzips it, and puts it alongside other
     //    layers from the project.
 
@@ -93,7 +146,7 @@ void PatchReceiver::unpack() const {
 
 }
 
-void PatchReceiver::build() const {
+void PatchReceiver::build() {
     // This remakes a saved Docker image from transmitted layers.
 
     checkPaths(project);
@@ -179,7 +232,7 @@ void PatchReceiver::build() const {
     configFile.close();
 }
 
-void PatchReceiver::apply() const {
+void PatchReceiver::apply() {
     checkPaths(project);
     string swarmDir = getSwarmDir();
     ROS_INFO("[patch_receiver] Applying project %s v%d", project.c_str(), version);
@@ -196,11 +249,26 @@ void PatchReceiver::apply() const {
     system(("tar -cf "+project+".tar *").c_str());
     system(("docker load < "+project+".tar").c_str());
 
+    ack(0);
+}
+
+void PatchReceiver::ack(unsigned char data){
+    ROS_INFO("[patch_receiver] ACK");
     swarm_cmd::SwarmCommand cmd;
-    cmd.data = {0};
+    cmd.data = {data};
     cmd.type = 2;
     cmd.data_length = 1;
     cmd.order = 0;
+    cmd.agent = "~"; // special case for a response to ground
+    cmdOut.publish(cmd);
+}
+
+void PatchReceiver::requestRetransmit(long n){
+    swarm_cmd::SwarmCommand cmd;
+    cmd.data = {0};
+    cmd.type = 6;
+    cmd.data_length = 1;
+    cmd.order = n;
     cmd.agent = "~"; // special case for a response to ground
     cmdOut.publish(cmd);
 }
